@@ -1,0 +1,15 @@
+
+2012-08-10  Terence Kelly  <kterence@hpl.hp.com>
+
+        * Add C++ STL example
+        * Add Makefile (not recommended)
+        * Minor changes to documentation
+
+2012-06-22  Terence Kelly  <kterence@hpl.hp.com>
+
+        * Minor changes
+
+2012-06-13  Terence Kelly  <kterence@hpl.hp.com>
+
+        * First general public release
+
