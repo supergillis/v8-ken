@@ -79,10 +79,6 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
 		// Restore data and reset process id
 		restore_v8_ken_data(data);
 		data->pid = getpid();
-    
-    // TODO persist this
-    v8Data = new V8Data();
-    v8Data->enter();
 		
 		// Restore V8
     // TODO
@@ -91,12 +87,17 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
 		return ken_handler(msg, len, sender);
 	}
 	else if (0 == ken_id_cmp(sender, kenid_stdin)) {
-    const char* str = (const char*) msg;
+    if (v8Data == NULL) {
+      // TODO persist this
+      v8Data = new V8Data();
+      v8Data->enter();
+    }
     
     // Execute javascript string
     v8::HandleScope handleScope;
+    v8::Handle<v8::String> string = v8::Handle<v8::String>(v8::String::New((const char*) msg));
     v8::Handle<v8::String> name = v8::Handle<v8::String>(v8::String::New("(shell)"));
-    eval(v8::String::New(str), name);
+    eval(string, name);
     
     // Prepare next REPL
     print("\n> ");
