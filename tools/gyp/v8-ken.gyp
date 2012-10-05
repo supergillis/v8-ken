@@ -1,5 +1,10 @@
 {
   'includes': ['../../build/common.gypi'],
+  'target_defaults': {
+    'cflags!': [
+      '-Werror',
+    ],
+  },
   'targets': [
     {
       'target_name': 'v8_ken_shell',
@@ -18,14 +23,14 @@
     {
       'target_name': 'ken',
       'type': '<(library)',
+      'cflags': [
+        '-std=gnu99',
+      ],
       'cflags!': [
         '-Wnon-virtual-dtor',
         '-Woverloaded-virtual',
         '-Werror',
         '-fno-rtti',
-      ],
-      'cflags': [
-        '-std=gnu99',
       ],
       'include_dirs': [
         '../../deps/ken',
