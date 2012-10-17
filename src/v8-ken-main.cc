@@ -3,9 +3,11 @@
 #include "v8-ken-data.h"
 #include "v8-ken-persist.h"
 
+#include "platform.h"
+
 bool eval(v8::Handle<v8::String> source, v8::Handle<v8::Value> name);
 void print(const char* str);
-void printException(v8::TryCatch* tryCatch);
+void print_exception(v8::TryCatch* try_catch);
 
 static V8Data* v8Data;
 
@@ -17,9 +19,9 @@ void print(const char* str) {
   ken_send(kenid_stdout, str, strlen(str));
 }
 
-void printException(v8::TryCatch* tryCatch) {
-  v8::HandleScope handleScope;
-  v8::String::Utf8Value exception(tryCatch->Exception());
+void print_exception(v8::TryCatch* try_catch) {
+  v8::HandleScope handle_scope;
+  v8::String::Utf8Value exception(try_catch->Exception());
 
   // Convert to cstring and print
   const char* exception_string = toCString(exception);
@@ -27,24 +29,24 @@ void printException(v8::TryCatch* tryCatch) {
 }
 
 bool eval(v8::Handle<v8::String> source, v8::Handle<v8::Value> name) {
-  v8::HandleScope handleScope;
-  v8::TryCatch tryCatch;
+  v8::HandleScope handle_scope;
+  v8::TryCatch try_catch;
   v8::Handle<v8::Script> script = v8::Script::Compile(source, name);
   if (script.IsEmpty()) {
-    printException(&tryCatch);
+    print_exception(&try_catch);
     return false;
   }
   else {
     v8::Handle<v8::Value> result = script->Run();
     if (result.IsEmpty()) {
-      assert(tryCatch.HasCaught());
+      assert(try_catch.HasCaught());
 
       // Print errors that happened during execution.
-      printException(&tryCatch);
+      print_exception(&try_catch);
       return false;
     }
     else {
-      assert(!tryCatch.HasCaught());
+      assert(!try_catch.HasCaught());
       if (!result->IsUndefined()) {
         // If all went well and the result wasn't undefined then print
         // the returned value.
@@ -61,10 +63,8 @@ bool eval(v8::Handle<v8::String> source, v8::Handle<v8::Value> name) {
 
 int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
 	V8KenData* data = (V8KenData*) ken_get_app_data();
-	if (0 == ken_id_cmp(sender, kenid_NULL)) {
-		print("Initializing...\n");
-
-		NTF(data == NULL);
+	if (0 == ken_id_cmp(sender, kenid_NULL) && data == NULL) {
+		fprintf(stderr, "Initializing...\n");
 		
 		data = create_v8_ken_data();
     data->pid = getpid();
@@ -73,7 +73,9 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
     // TODO
 	}
 	else if (data->pid != getpid()) {
-		print("Restoring...\n");
+		fprintf(stderr, "Restoring...\n");
+    
+    // Prepare REPL
     print("> ");
 		
 		// Restore data and reset process id
@@ -94,7 +96,7 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
     }
     
     // Execute javascript string
-    v8::HandleScope handleScope;
+    v8::HandleScope handle_scope;
     v8::Handle<v8::String> string = v8::Handle<v8::String>(v8::String::New((const char*) msg));
     v8::Handle<v8::String> name = v8::Handle<v8::String>(v8::String::New("(shell)"));
     eval(string, name);

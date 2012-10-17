@@ -56,6 +56,7 @@
 #undef MAP_TYPE
 
 #include "v8.h"
+#include "v8-ken.h"
 
 #include "platform-posix.h"
 #include "platform.h"
@@ -351,7 +352,6 @@ static void UpdateAllocatedSpaceLimits(void* address, int size) {
           reinterpret_cast<void*>(reinterpret_cast<char*>(address) + size));
 }
 
-
 bool OS::IsOutsideAllocatedSpace(void* address) {
   return address < lowest_ever_allocated || address >= highest_ever_allocated;
 }
@@ -365,26 +365,16 @@ size_t OS::AllocateAlignment() {
 void* OS::Allocate(const size_t requested,
                    size_t* allocated,
                    bool is_executable) {
-  const size_t msize = RoundUp(requested, AllocateAlignment());
-  int prot = PROT_READ | PROT_WRITE | (is_executable ? PROT_EXEC : 0);
-  void* addr = OS::GetRandomMmapAddr();
-  void* mbase = mmap(addr, msize, prot, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  if (mbase == MAP_FAILED) {
-    LOG(i::Isolate::Current(),
-        StringEvent("OS::Allocate", "mmap failed"));
-    return NULL;
-  }
-  *allocated = msize;
-  UpdateAllocatedSpaceLimits(mbase, msize);
-  return mbase;
+  *allocated = requested;
+  void* base = ken_malloc(requested);
+  UpdateAllocatedSpaceLimits(base, requested);
+  return base;
 }
 
 
 void OS::Free(void* address, const size_t size) {
-  // TODO(1240712): munmap has a return value which is ignored here.
-  int result = munmap(address, size);
-  USE(result);
-  ASSERT(result == 0);
+  // TODO Check if same size as allocated?
+  ken_free(address);
 }
 
 
@@ -535,10 +525,6 @@ void OS::LogSharedLibraryAddresses() {
   fclose(fp);
 }
 
-
-static const char kGCFakeMmap[] = "/tmp/__v8_gc__";
-
-
 void OS::SignalCodeMovingGC() {
   // Support for ll_prof.py.
   //
@@ -548,17 +534,8 @@ void OS::SignalCodeMovingGC() {
   // it. This injects a GC marker into the stream of events generated
   // by the kernel and allows us to synchronize V8 code log and the
   // kernel log.
-  int size = sysconf(_SC_PAGESIZE);
-  FILE* f = fopen(kGCFakeMmap, "w+");
-  void* addr = mmap(OS::GetRandomMmapAddr(),
-                    size,
-                    PROT_READ | PROT_EXEC,
-                    MAP_PRIVATE,
-                    fileno(f),
-                    0);
-  ASSERT(addr != MAP_FAILED);
-  OS::Free(addr, size);
-  fclose(f);
+  
+  // TODO Fix this for the Ken library?
 }
 
 
@@ -594,11 +571,6 @@ int OS::StackWalk(Vector<OS::StackFrame> frames) {
 #endif  // ndef __GLIBC__
 }
 
-
-// Constants used for mmap.
-static const int kMmapFd = -1;
-static const int kMmapFdOffset = 0;
-
 VirtualMemory::VirtualMemory() : address_(NULL), size_(0) { }
 
 VirtualMemory::VirtualMemory(size_t size) {
@@ -607,43 +579,9 @@ VirtualMemory::VirtualMemory(size_t size) {
 }
 
 
-VirtualMemory::VirtualMemory(size_t size, size_t alignment)
-    : address_(NULL), size_(0) {
-  ASSERT(IsAligned(alignment, static_cast<intptr_t>(OS::AllocateAlignment())));
-  size_t request_size = RoundUp(size + alignment,
-                                static_cast<intptr_t>(OS::AllocateAlignment()));
-  void* reservation = mmap(OS::GetRandomMmapAddr(),
-                           request_size,
-                           PROT_NONE,
-                           MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
-                           kMmapFd,
-                           kMmapFdOffset);
-  if (reservation == MAP_FAILED) return;
-
-  Address base = static_cast<Address>(reservation);
-  Address aligned_base = RoundUp(base, alignment);
-  ASSERT_LE(base, aligned_base);
-
-  // Unmap extra memory reserved before and after the desired block.
-  if (aligned_base != base) {
-    size_t prefix_size = static_cast<size_t>(aligned_base - base);
-    OS::Free(base, prefix_size);
-    request_size -= prefix_size;
-  }
-
-  size_t aligned_size = RoundUp(size, OS::AllocateAlignment());
-  ASSERT_LE(aligned_size, request_size);
-
-  if (aligned_size != request_size) {
-    size_t suffix_size = request_size - aligned_size;
-    OS::Free(aligned_base + aligned_size, suffix_size);
-    request_size -= suffix_size;
-  }
-
-  ASSERT(aligned_size == request_size);
-
-  address_ = static_cast<void*>(aligned_base);
-  size_ = aligned_size;
+VirtualMemory::VirtualMemory(size_t size, size_t alignment) {
+  address_ = ReserveRegion(size + alignment);
+  size_ = size;
 }
 
 
@@ -684,47 +622,34 @@ bool VirtualMemory::Guard(void* address) {
 
 
 void* VirtualMemory::ReserveRegion(size_t size) {
-  void* result = mmap(OS::GetRandomMmapAddr(),
-                      size,
-                      PROT_NONE,
-                      MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
-                      kMmapFd,
-                      kMmapFdOffset);
-
-  if (result == MAP_FAILED) return NULL;
-
-  return result;
+  return ken_malloc(size);
 }
 
 
 bool VirtualMemory::CommitRegion(void* base, size_t size, bool is_executable) {
-  int prot = PROT_READ | PROT_WRITE | (is_executable ? PROT_EXEC : 0);
-  if (MAP_FAILED == mmap(base,
-                         size,
-                         prot,
-                         MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
-                         kMmapFd,
-                         kMmapFdOffset)) {
-    return false;
-  }
+  Address address = static_cast<Address>(base);
+  Address aligned_address = RoundDown(address, OS::AllocateAlignment());
 
-  UpdateAllocatedSpaceLimits(base, size);
+  // Don't give write permissions, else Ken won't know this region has changed.
+  int prot = PROT_READ | PROT_WRITE | (is_executable ? PROT_EXEC : 0);
+  i_ken_mprotect(static_cast<void*>(aligned_address), (address - aligned_address) + size, prot);
   return true;
 }
 
 
 bool VirtualMemory::UncommitRegion(void* base, size_t size) {
-  return mmap(base,
-              size,
-              PROT_NONE,
-              MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_FIXED,
-              kMmapFd,
-              kMmapFdOffset) != MAP_FAILED;
+  Address address = static_cast<Address>(base);
+  Address aligned_address = RoundDown(address, OS::AllocateAlignment());
+
+  // Restore to read-only. With write permissions, Ken won't work anymore.
+  i_ken_mprotect(static_cast<void*>(aligned_address), (address - aligned_address) + size, PROT_READ);
+  return true;
 }
 
 
 bool VirtualMemory::ReleaseRegion(void* base, size_t size) {
-  return munmap(base, size) == 0;
+  ken_free(base);
+  return true;
 }
 
 

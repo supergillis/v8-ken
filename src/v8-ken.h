@@ -6,6 +6,8 @@ extern "C" {
 #include "kenapp.h"
 #include "kencom.h"
 
+extern void print(const char* str);
+
 #ifdef __cplusplus
 }
 #endif

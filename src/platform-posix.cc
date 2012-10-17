@@ -54,6 +54,7 @@
 #endif
 
 #include "v8.h"
+#include "v8-ken.h"
 
 #include "codegen.h"
 #include "platform.h"
@@ -81,14 +82,22 @@ intptr_t OS::CommitPageSize() {
 
 #ifndef __CYGWIN__
 // Get rid of writable permission on code allocations.
-void OS::ProtectCode(void* address, const size_t size) {
-  mprotect(address, size, PROT_READ | PROT_EXEC);
+void OS::ProtectCode(void* base, const size_t size) {
+  // TODO Make this only for Linux?
+  Address address = static_cast<Address>(base);
+  Address aligned_address = RoundDown(address, OS::AllocateAlignment());
+
+  i_ken_mprotect(static_cast<void*>(aligned_address), (address - aligned_address) + size, PROT_READ | PROT_EXEC);
 }
 
 
 // Create guard pages.
-void OS::Guard(void* address, const size_t size) {
-  mprotect(address, size, PROT_NONE);
+void OS::Guard(void* base, const size_t size) {
+  // TODO Make this only for Linux?
+  Address address = static_cast<Address>(base);
+  Address aligned_address = RoundDown(address, OS::AllocateAlignment());
+
+  i_ken_mprotect(static_cast<void*>(aligned_address), (address - aligned_address) + size, PROT_NONE);
 }
 #endif  // __CYGWIN__
 

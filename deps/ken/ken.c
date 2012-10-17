@@ -420,10 +420,10 @@ static void i_ken_SIGSEGV_sigaction(int signo, siginfo_t * info, void * uc) {
      handler; read() and write() are async-signal-safe. */
   p = &(e_dirtypages[e_ndirty]);
   if (PAGE_ALIGNED(p))
-    i_ken_mprotect(p, PAGESZ, PROT_READ | PROT_WRITE);
+    i_ken_mprotect(p, PAGESZ, PROT_READ | PROT_WRITE | PROT_EXEC);
   e_dirtypages[e_ndirty++] = pagenum;
   p = (char *)e_state_blob + (int64_t)PAGESZ * (int64_t)pagenum;
-  i_ken_mprotect(p, PAGESZ, PROT_READ | PROT_WRITE);
+  i_ken_mprotect(p, PAGESZ, PROT_READ | PROT_WRITE | PROT_EXEC);
   errno = my_errno;
   /* See POSIX 2008 Sec. 2.4.3 p. 489 and C99 Sec. 7.14.1 p. 247. */
 }
@@ -651,7 +651,7 @@ static void * i_ken_recover(void) {
         FP1("end truncate\n");
       }
       fd = open(statefile, O_RDONLY);   NTF(0 <= fd);
-      final = mmap(addr, BLOB_BYTES, PROT_READ, MAP_PRIVATE, fd, 0);
+      final = mmap(addr, BLOB_BYTES, PROT_READ | PROT_EXEC, MAP_PRIVATE, fd, 0);
       NTF(addr == final);
       CLOSE(fd);
       return final;
@@ -925,7 +925,7 @@ int main(int argc, char *argv[]) {
       mapaddr = tmp;
       MUNMAP(mmr, holesize);
       e_state_blob = (ken_state_blob_t *)
-                     mmap(mapaddr, BLOB_BYTES, PROT_READ,
+                     mmap(mapaddr, BLOB_BYTES, PROT_READ | PROT_EXEC,
                           MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
       NTF(e_state_blob == mapaddr);
 
@@ -1037,10 +1037,12 @@ int main(int argc, char *argv[]) {
               e_noutmsgs * sizeof e_outmsgoffsets[0]);
       e_noutmsgs = 0;
 
+#if 0
       /* check dirty pages for redundancy; remove eventually (?) */
       qsort(e_dirtypages, e_ndirty, sizeof e_dirtypages[0], int32cmp);
       for (i = 1; i < e_ndirty; i++)
         KENASRT(e_dirtypages[i-1] < e_dirtypages[i]);
+#endif
 
 #if 0
       /* debugging:  print IDs of dirty pages */
@@ -1112,7 +1114,7 @@ int main(int argc, char *argv[]) {
         CKWRITEVAR(WR_PIPE, eot_not);
       }
 
-      i_ken_mprotect(e_state_blob, sizeof *e_state_blob, PROT_READ);
+      i_ken_mprotect(e_state_blob, sizeof *e_state_blob, PROT_READ | PROT_EXEC);
 
       /* END PROHIBITION ON STATE BLOB MODIFICATION */
     }

@@ -40,10 +40,12 @@
               'toolsets': ['target'],
             }],
             ['v8_use_snapshot=="true"', {
+              # Snapshots not possible with Ken library
+            
               # The dependency on v8_base should come from a transitive
               # dependency however the Android toolchain requires libv8_base.a
               # to appear before libv8_snapshot.a so it's listed explicitly.
-              'dependencies': ['v8_base', 'v8_snapshot'],
+              'dependencies': ['v8_base', 'v8_nosnapshot'],
             },
             {
               # The dependency on v8_base should come from a transitive
@@ -90,7 +92,6 @@
           'direct_dependent_settings': {
             'include_dirs': [
               '../../include',
-              '../../deps/ken',
             ],
           },
         },
@@ -229,11 +230,15 @@
         {
           'target_name': 'v8_base',
           'type': '<(library)',
+          'dependencies': [
+            'ken.gyp:ken',
+          ],
           'variables': {
             'optimize': 'max',
           },
           'include_dirs+': [
             '../../src',
+            '../../deps/ken',
           ],
           'sources': [
             '../../src/accessors.cc',
@@ -880,36 +885,11 @@
           ],
         },
         {
-          'target_name': 'v8_shell',
-          'type': 'executable',
-          'dependencies': [
-            'v8'
-          ],
-          'sources': [
-            '../../samples/shell.cc',
-          ],
-          'conditions': [
-            ['want_separate_host_toolset==1', {
-              'toolsets': ['host'],
-            }, {
-              'toolsets': ['target'],
-            }],
-            ['OS=="win"', {
-              # This could be gotten by not setting chromium_code, if that's OK.
-              'defines': ['_CRT_SECURE_NO_WARNINGS'],
-            }],
-            ['v8_compress_startup_data=="bz2"', {
-              'libraries': [
-                '-lbz2',
-              ]
-            }],
-          ],
-        },
-        {
           'target_name': 'preparser_lib',
           'type': '<(library)',
           'include_dirs+': [
             '../../src',
+            '../../deps/ken',
           ],
           'sources': [
             '../../include/v8-preparser.h',
@@ -990,20 +970,6 @@
               '-lv8',
             ],
           },
-        },
-        {
-          'target_name': 'v8_shell',
-          'type': 'none',
-          'conditions': [
-            ['want_separate_host_toolset==1', {
-              'toolsets': ['host'],
-            }, {
-              'toolsets': ['target'],
-            }],
-          ],
-          'dependencies': [
-            'v8'
-          ],
         },
       ],
     }],

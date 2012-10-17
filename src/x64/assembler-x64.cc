@@ -133,6 +133,12 @@ void CpuFeatures::Probe() {
   __ ret(0);
 #undef __
 
+#if 1
+  delete memory;
+  return;
+#endif
+
+  // TODO Fix the call to probe(), it isn't callable
   typedef uint64_t (*F0)();
   F0 probe = FUNCTION_CAST<F0>(reinterpret_cast<Address>(memory->address()));
   supported_ = probe();

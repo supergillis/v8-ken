@@ -10,9 +10,6 @@
       'dependencies': [
         '../preparser/preparser.gyp:*',
         '../tools/gyp/v8-ken.gyp:v8_ken_shell',
-        '../samples/samples.gyp:*',
-        '../src/d8.gyp:d8',
-        '../test/cctest/cctest.gyp:*',
       ],
     }
   ]
