@@ -373,7 +373,6 @@ void* OS::Allocate(const size_t requested,
 
 
 void OS::Free(void* address, const size_t size) {
-  // TODO Check if same size as allocated?
   ken_free(address);
 }
 
@@ -631,7 +630,7 @@ bool VirtualMemory::CommitRegion(void* base, size_t size, bool is_executable) {
   Address aligned_address = RoundDown(address, OS::AllocateAlignment());
 
   // Don't give write permissions, else Ken won't know this region has changed.
-  int prot = PROT_READ | PROT_WRITE | (is_executable ? PROT_EXEC : 0);
+  int prot = PROT_READ | (is_executable ? PROT_EXEC : 0);
   i_ken_mprotect(static_cast<void*>(aligned_address), (address - aligned_address) + size, prot);
   return true;
 }
