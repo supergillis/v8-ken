@@ -6,6 +6,7 @@
       'type': '<(library)',
       'cflags': [
         '-std=gnu99',
+        '-g',
       ],
       'cflags!': [
         '-Wnon-virtual-dtor',

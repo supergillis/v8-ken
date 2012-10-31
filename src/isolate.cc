@@ -316,8 +316,21 @@ Isolate* Isolate::default_isolate_ = NULL;
 Thread::LocalStorageKey Isolate::isolate_key_;
 Thread::LocalStorageKey Isolate::thread_id_key_;
 Thread::LocalStorageKey Isolate::per_isolate_thread_data_key_;
-Mutex* Isolate::process_wide_mutex_ = OS::CreateMutex();
+Mutex* Isolate::process_wide_mutex_ = NULL;
 Isolate::ThreadDataTable* Isolate::thread_data_table_ = NULL;
+
+
+/*
+ * Lazy initialization so we can Ken malloc it.
+ *
+ * TODO: fix leak on restart
+ */
+Mutex* Isolate::GetProcessWideMutex() {
+  if (process_wide_mutex_ == NULL) {
+    process_wide_mutex_ = OS::CreateMutex();
+  }
+  return process_wide_mutex_;
+}
 
 
 Isolate::PerIsolateThreadData* Isolate::AllocatePerIsolateThreadData(
@@ -325,7 +338,7 @@ Isolate::PerIsolateThreadData* Isolate::AllocatePerIsolateThreadData(
   ASSERT(!thread_id.Equals(ThreadId::Invalid()));
   PerIsolateThreadData* per_thread = new PerIsolateThreadData(this, thread_id);
   {
-    ScopedLock lock(process_wide_mutex_);
+    ScopedLock lock(GetProcessWideMutex());
     ASSERT(thread_data_table_->Lookup(this, thread_id) == NULL);
     thread_data_table_->Insert(per_thread);
     ASSERT(thread_data_table_->Lookup(this, thread_id) == per_thread);
@@ -339,7 +352,7 @@ Isolate::PerIsolateThreadData*
   ThreadId thread_id = ThreadId::Current();
   PerIsolateThreadData* per_thread = NULL;
   {
-    ScopedLock lock(process_wide_mutex_);
+    ScopedLock lock(GetProcessWideMutex());
     per_thread = thread_data_table_->Lookup(this, thread_id);
     if (per_thread == NULL) {
       per_thread = AllocatePerIsolateThreadData(thread_id);
@@ -353,7 +366,7 @@ Isolate::PerIsolateThreadData* Isolate::FindPerThreadDataForThisThread() {
   ThreadId thread_id = ThreadId::Current();
   PerIsolateThreadData* per_thread = NULL;
   {
-    ScopedLock lock(process_wide_mutex_);
+    ScopedLock lock(GetProcessWideMutex());
     per_thread = thread_data_table_->Lookup(this, thread_id);
   }
   return per_thread;
@@ -361,7 +374,7 @@ Isolate::PerIsolateThreadData* Isolate::FindPerThreadDataForThisThread() {
 
 
 void Isolate::EnsureDefaultIsolate() {
-  ScopedLock lock(process_wide_mutex_);
+  ScopedLock lock(GetProcessWideMutex());
   if (default_isolate_ == NULL) {
     isolate_key_ = Thread::CreateThreadLocalKey();
     thread_id_key_ = Thread::CreateThreadLocalKey();
@@ -376,11 +389,38 @@ void Isolate::EnsureDefaultIsolate() {
   }
 }
 
-struct StaticInitializer {
+
+Isolate* Isolate::New() {
+  return new Isolate();
+}
+
+
+/*
+ * TODO: fix leak on restart
+ */
+void Isolate::RestoreDefaultIsolate(Isolate* isolate) {
+  ASSERT(default_isolate_ == NULL);
+
+  ScopedLock lock(GetProcessWideMutex());
+  if (default_isolate_ == NULL) {
+    isolate_key_ = Thread::CreateThreadLocalKey();
+    thread_id_key_ = Thread::CreateThreadLocalKey();
+    per_isolate_thread_data_key_ = Thread::CreateThreadLocalKey();
+    thread_data_table_ = new Isolate::ThreadDataTable();
+    default_isolate_ = isolate;
+  }
+  // Can't use SetIsolateThreadLocals(default_isolate_, NULL) here
+  // because a non-null thread data may be already set.
+  if (Thread::GetThreadLocal(isolate_key_) == NULL) {
+    Thread::SetThreadLocal(isolate_key_, default_isolate_);
+  }
+}
+
+/*struct StaticInitializer {
   StaticInitializer() {
     Isolate::EnsureDefaultIsolate();
   }
-} static_initializer;
+} static_initializer;*/
 
 #ifdef ENABLE_DEBUGGER_SUPPORT
 Debugger* Isolate::GetDefaultIsolateDebugger() {
@@ -1533,7 +1573,7 @@ void Isolate::TearDown() {
 
   Deinit();
 
-  { ScopedLock lock(process_wide_mutex_);
+  { ScopedLock lock(GetProcessWideMutex());
     thread_data_table_->RemoveAllThreads(this);
   }
 

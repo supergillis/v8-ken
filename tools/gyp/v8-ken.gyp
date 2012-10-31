@@ -7,6 +7,9 @@
       'dependencies': [
         'v8.gyp:v8',
       ],
+      'cflags': [
+        '-g',
+      ],
       'cflags!': [
         '-Werror',
       ],

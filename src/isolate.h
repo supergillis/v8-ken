@@ -472,6 +472,12 @@ class Isolate {
   // Safe to call multiple times.
   static void EnsureDefaultIsolate();
 
+  // Used by V8Data
+  static Isolate* New();
+
+  // Used by V8Data
+  static void RestoreDefaultIsolate(Isolate* isolate);
+
   // Find the PerThread for this particular (isolate, thread) combination
   // If one does not yet exist, return null.
   PerIsolateThreadData* FindPerThreadDataForThisThread();
@@ -1114,6 +1120,8 @@ class Isolate {
   // PreInits and returns a default isolate. Needed when a new thread tries
   // to create a Locker for the first time (the lock itself is in the isolate).
   static Isolate* GetDefaultIsolateForLocking();
+
+  static Mutex* GetProcessWideMutex();
 
   // Initializes the current thread to run this Isolate.
   // Not thread-safe. Multiple threads should not Enter/Exit the same isolate

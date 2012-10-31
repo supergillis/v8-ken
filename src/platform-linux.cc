@@ -366,7 +366,9 @@ void* OS::Allocate(const size_t requested,
                    size_t* allocated,
                    bool is_executable) {
   *allocated = requested;
+  assert(0 != ken_heap_ready);
   void* base = ken_malloc(requested);
+  assert(NULL != base);
   UpdateAllocatedSpaceLimits(base, requested);
   return base;
 }
@@ -621,7 +623,11 @@ bool VirtualMemory::Guard(void* address) {
 
 
 void* VirtualMemory::ReserveRegion(size_t size) {
-  return ken_malloc(size);
+  assert(0 != ken_heap_ready);
+  void* base = ken_malloc(size);
+  assert(NULL != base);
+  UpdateAllocatedSpaceLimits(base, size);
+  return base;
 }
 
 

@@ -1,15 +1,38 @@
 #include "v8.h"
 #include "v8-ken.h"
 #include "v8-ken-data.h"
-#include "v8-ken-persist.h"
 
 #include "platform.h"
+
+/***
+ * Override new and delete operators
+ */
+
+static void* ken_new(size_t s) {
+  assert(0 != ken_heap_ready);
+  void* ptr = ken_malloc(s);
+  assert(NULL != ptr);
+  return ptr;
+}
+
+void* operator new (size_t size) { return ken_new(size); }
+void* operator new[] (size_t size) { return ken_new(size); }
+
+static void ken_delete(void* ptr) {
+  assert(0 != ken_heap_ready && NULL != ptr);
+  ken_free(ptr);
+}
+
+void operator delete (void* ptr) { ken_delete(ptr); }
+void operator delete[] (void* ptr) { ken_delete(ptr); }
+
+/***
+ * V8 ken shell core
+ */
 
 bool eval(v8::Handle<v8::String> source, v8::Handle<v8::Value> name);
 void print(const char* str);
 void print_exception(v8::TryCatch* try_catch);
-
-static V8Data* v8Data;
 
 const char* toCString(const v8::String::Utf8Value& value) {
   return *value ? *value : "<string conversion failed>";
@@ -61,54 +84,42 @@ bool eval(v8::Handle<v8::String> source, v8::Handle<v8::Value> name) {
   }
 }
 
+/***
+ * V8 ken shell main loop
+ */
+
 int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
-	V8KenData* data = (V8KenData*) ken_get_app_data();
-	if (0 == ken_id_cmp(sender, kenid_NULL) && data == NULL) {
-		fprintf(stderr, "Initializing...\n");
-		
-		data = create_v8_ken_data();
-    data->pid = getpid();
-    
-    // Initialize V8
-    // TODO
-	}
-	else if (data->pid != getpid()) {
-		fprintf(stderr, "Restoring...\n");
-    
+  static Data* data = Data::instance();
+
+  if (0 == ken_id_cmp(sender, kenid_NULL) && data == NULL) {
+    fprintf(stderr, "Initializing...\n");
+
+    data = Data::initialize();
+  }
+  else if (data->pid() != getpid()) {
+    fprintf(stderr, "Restoring from %d...\n", data->pid());
+
+    // Update process id and restore isolate
+    data->restore();
+
     // Prepare REPL
     print("> ");
-		
-		// Restore data and reset process id
-		restore_v8_ken_data(data);
-		data->pid = getpid();
-		
-		// Restore V8
-    // TODO
-    
+
     // Continue normal behaviour
-		return ken_handler(msg, len, sender);
-	}
-	else if (0 == ken_id_cmp(sender, kenid_stdin)) {
-    if (v8Data == NULL) {
-      // TODO persist this
-      v8Data = new V8Data();
-      v8Data->enter();
-    }
-    
+    return ken_handler(msg, len, sender);
+  }
+  else if (0 == ken_id_cmp(sender, kenid_stdin)) {
     // Execute javascript string
     v8::HandleScope handle_scope;
     v8::Handle<v8::String> string = v8::Handle<v8::String>(v8::String::New((const char*) msg));
     v8::Handle<v8::String> name = v8::Handle<v8::String>(v8::String::New("(shell)"));
     eval(string, name);
-    
+
     // Prepare next REPL
     print("\n> ");
-	}
-	else if (0 == ken_id_cmp(sender, kenid_alarm)) {
-	}
+  }
+  else if (0 == ken_id_cmp(sender, kenid_alarm)) {
+  }
 
-  // Save the data at each turn
-  save_v8_ken_data(data);
-
-	return -1;
+  return -1;
 }

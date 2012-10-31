@@ -230,6 +230,9 @@
         {
           'target_name': 'v8_base',
           'type': '<(library)',
+          'cflags': [
+            '-g',
+          ],
           'dependencies': [
             'ken.gyp:ken',
           ],
