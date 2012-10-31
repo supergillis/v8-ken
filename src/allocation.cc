@@ -25,6 +25,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "v8-ken.h"
+
 #include "allocation.h"
 
 #include <stdlib.h>  // For free, malloc.
@@ -36,7 +38,7 @@ namespace v8 {
 namespace internal {
 
 void* Malloced::New(size_t size) {
-  void* result = malloc(size);
+  void* result = ken_malloc(size);
   if (result == NULL) {
     v8::internal::FatalProcessOutOfMemory("Malloced operator new");
   }
@@ -45,7 +47,7 @@ void* Malloced::New(size_t size) {
 
 
 void Malloced::Delete(void* p) {
-  free(p);
+  ken_free(p);
 }
 
 

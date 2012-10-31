@@ -15,6 +15,7 @@
 *.xcodeproj
 #*#
 *~
+.*
 .cpplint-cache
 d8
 d8_g
@@ -34,3 +35,4 @@ shell_g
 /xcodebuild/
 TAGS
 *.Makefile
+ken_*

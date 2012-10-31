@@ -8,7 +8,6 @@
       'target_name': 'All',
       'type': 'none',
       'dependencies': [
-        '../preparser/preparser.gyp:*',
         '../tools/gyp/v8-ken.gyp:v8_ken_shell',
       ],
     }

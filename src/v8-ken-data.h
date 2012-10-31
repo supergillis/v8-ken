@@ -2,6 +2,7 @@
 #define V8_KEN_DATA_H
 
 #include "v8-ken.h"
+
 #include "isolate.h"
 
 using namespace v8::internal;
@@ -38,11 +39,13 @@ public:
   }
 
   Data():
-    pid_(getpid()),
-    default_isolate_(Isolate::New()),
-    v8_data_(new V8Data()) {
+    pid_(getpid()) {
     // Set default isolate
+    default_isolate_ = Isolate::New();
     Isolate::RestoreDefaultIsolate(default_isolate_);
+
+    // Initialize V8 stuff after the isolate
+    v8_data_ = new V8Data();
   }
 
   void restore() {
