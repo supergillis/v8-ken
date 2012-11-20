@@ -550,6 +550,7 @@ int DisassemblerX64::PrintRightOperandHelper(
       return 1;
   }
   UNREACHABLE();
+  return 1;
 }
 
 

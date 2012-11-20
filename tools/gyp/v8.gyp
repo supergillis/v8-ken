@@ -232,7 +232,11 @@
           'type': '<(library)',
           'cflags': [
             '-g',
+            '-finstrument-functions',
           ],
+		  'cflags!': [
+			'-Werror',
+		  ],
           'dependencies': [
             'ken.gyp:ken',
           ],

@@ -35,7 +35,7 @@ void print(const char* str);
 void print_exception(v8::TryCatch* try_catch);
 
 const char* toCString(const v8::String::Utf8Value& value) {
-  return *value ? *value : "<string conversion failed>";
+  return *value ? *value : "<null>";
 }
 
 void print(const char* str) {
@@ -85,6 +85,41 @@ bool eval(v8::Handle<v8::String> source, v8::Handle<v8::Value> name) {
 }
 
 /***
+ * Debugging stuff
+ */
+
+static bool tracing = false;
+
+static FILE* fp_trace;
+
+void __attribute__ ((constructor)) trace_begin(void) {
+	fp_trace = fopen("trace.out", "w");
+}
+
+void __attribute__ ((destructor)) trace_end(void) {
+	if (fp_trace != NULL) {
+		fclose(fp_trace);
+	}
+}
+
+void __cyg_profile_func_enter(void* func, void* caller) __attribute__((no_instrument_function));
+void __cyg_profile_func_exit(void* func, void* caller) __attribute__((no_instrument_function));
+
+void __cyg_profile_func_enter(void* func,  void* caller) {
+	if (fp_trace != NULL && tracing) {
+		fprintf(fp_trace, "enter %p %p\n", func, caller);
+		fflush(fp_trace);
+	}
+}
+
+void __cyg_profile_func_exit(void* func, void* caller) {
+	if (fp_trace != NULL && tracing) {
+		fprintf(fp_trace, "exit %p %p\n", func, caller);
+		fflush(fp_trace);
+	}
+}
+
+/***
  * V8 ken shell main loop
  */
 
@@ -95,12 +130,30 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
     fprintf(stderr, "Initializing...\n");
 
     data = Data::initialize();
+    
+    v8::HandleScope handle_scope;
+    v8::Handle<v8::String> assignment = v8::Handle<v8::String>(v8::String::New("a=1"));
+    v8::Handle<v8::String> variable = v8::Handle<v8::String>(v8::String::New("a=1"));
+    v8::Handle<v8::String> name = v8::Handle<v8::String>(v8::String::New("(shell)"));
+    eval(assignment, name);
+    
+    tracing = true;
+    eval(variable, name);
+    tracing = false;
   }
   else if (data->pid() != getpid()) {
     fprintf(stderr, "Restoring from %d...\n", data->pid());
 
     // Update process id and restore isolate
     data->restore();
+    
+    v8::HandleScope handle_scope;
+    v8::Handle<v8::String> variable = v8::Handle<v8::String>(v8::String::New("a=1"));
+    v8::Handle<v8::String> name = v8::Handle<v8::String>(v8::String::New("(shell)"));
+    
+    tracing = true;
+    eval(variable, name);
+    tracing = false;
 
     // Prepare REPL
     print("> ");

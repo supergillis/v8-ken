@@ -9,6 +9,7 @@
       ],
       'cflags': [
         '-g',
+        '-finstrument-functions',
       ],
       'cflags!': [
         '-Werror',

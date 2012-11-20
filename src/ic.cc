@@ -676,6 +676,7 @@ Handle<Code> CallICBase::ComputeMonomorphicStub(LookupResult* lookup,
     default:
       return Handle<Code>::null();
   }
+  return Handle<Code>::null();
 }
 
 
@@ -1665,6 +1666,7 @@ Handle<Map> KeyedIC::ComputeTransitionedMap(Handle<JSObject> receiver,
       UNREACHABLE();
       return Handle<Map>::null();
   }
+  return Handle<Map>::null();
 }
 
 
