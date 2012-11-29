@@ -44,6 +44,8 @@ class GCExtension : public v8::Extension {
   static const char* const kSource;
 };
 
+extern GCExtension* gc_extension;
+
 } }  // namespace v8::internal
 
 #endif  // V8_EXTENSIONS_GC_EXTENSION_H_

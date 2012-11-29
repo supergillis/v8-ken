@@ -37,7 +37,11 @@
 #ifndef V8_X64_ASSEMBLER_X64_H_
 #define V8_X64_ASSEMBLER_X64_H_
 
-#include "serialize.h"
+#include "../assembler.h"
+#include "../serialize.h"
+
+// Used for persisting static variables
+class Statics;
 
 namespace v8 {
 namespace internal {
@@ -522,6 +526,8 @@ class CpuFeatures : public AllStatic {
 #endif
   static uint64_t supported_;
   static uint64_t found_by_runtime_probing_;
+
+  friend class ::Statics;
 
   DISALLOW_COPY_AND_ASSIGN(CpuFeatures);
 };

@@ -246,6 +246,7 @@ namespace internal {
   V(minus_infinity_symbol, "-Infinity")                                  \
   V(hidden_stack_trace_symbol, "v8::hidden_stack_trace")
 
+
 // Forward declarations.
 class GCTracer;
 class HeapStats;
@@ -385,6 +386,8 @@ class PromotionQueue {
 typedef void (*ScavengingCallback)(Map* map,
                                    HeapObject** slot,
                                    HeapObject* object);
+
+extern bool initialized_gc;
 
 
 // External strings table is a place where all external strings are

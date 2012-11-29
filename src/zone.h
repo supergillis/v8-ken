@@ -35,6 +35,9 @@
 #include "list.h"
 #include "splay-tree.h"
 
+// Used for persisting static variables
+class Statics;
+
 namespace v8 {
 namespace internal {
 
@@ -140,6 +143,8 @@ class Zone {
 
   Segment* segment_head_;
   Isolate* isolate_;
+
+  friend class ::Statics;
 };
 
 

@@ -37,6 +37,9 @@
 #include "isolate.h"
 #include "list-inl.h"
 
+// Used for persisting static variables
+class Statics;
+
 namespace v8 {
 
 // Constants used in the implementation of the API.  The most natural thing
@@ -140,8 +143,6 @@ class ApiFunction {
   v8::internal::Address addr_;
 };
 
-
-
 class RegisteredExtension {
  public:
   explicit RegisteredExtension(Extension* extension);
@@ -155,6 +156,8 @@ class RegisteredExtension {
   RegisteredExtension* next_;
   RegisteredExtension* next_auto_;
   static RegisteredExtension* first_extension_;
+
+  friend class ::Statics;
 };
 
 
@@ -561,6 +564,8 @@ class Testing {
 
  private:
   static v8::Testing::StressType stress_type_;
+
+  friend class ::Statics;
 };
 
 } }  // namespace v8::internal

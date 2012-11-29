@@ -7,7 +7,6 @@
       'cflags': [
         '-std=gnu99',
         '-g',
-        '-finstrument-functions',
       ],
       'cflags!': [
         '-Wnon-virtual-dtor',

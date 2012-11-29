@@ -1,0 +1,3 @@
+#!/bin/sh
+
+grep -nr "static[\n\t]*[^\(\);]*;" . | grep -vsw "const"

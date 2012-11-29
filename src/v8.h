@@ -66,6 +66,9 @@
 #include "cpu-profiler-inl.h"
 #include "handles-inl.h"
 
+// Used for persisting static variables
+class Statics;
+
 namespace v8 {
 namespace internal {
 
@@ -133,6 +136,8 @@ class V8 : public AllStatic {
   static bool use_crankshaft_;
   // List of callbacks when a Call completes.
   static List<CallCompletedCallback>* call_completed_callbacks_;
+
+  friend class ::Statics;
 };
 
 

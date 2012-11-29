@@ -5855,6 +5855,8 @@ class HeapDebugUtils {
 
 #endif
 
+bool initialized_gc = false;
+
 bool Heap::SetUp(bool create_heap_objects) {
 #ifdef DEBUG
   allocation_timeout_ = FLAG_gc_interval;
@@ -5874,7 +5876,6 @@ bool Heap::SetUp(bool create_heap_objects) {
   }
 
   gc_initializer_mutex.Pointer()->Lock();
-  static bool initialized_gc = false;
   if (!initialized_gc) {
       initialized_gc = true;
       InitializeScavengingVisitorsTables();
