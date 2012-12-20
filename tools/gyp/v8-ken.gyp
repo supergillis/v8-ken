@@ -14,11 +14,13 @@
         '-Werror',
       ],
       'include_dirs': [
+        '../../src',
         '../../include',
         '../../deps/ken',
       ],
       'sources': [
         '../../src/v8-ken-main.cc',
+        '../../src/v8-ken-data.cc',
       ],
     },
   ]

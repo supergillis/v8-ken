@@ -1,5 +1,10 @@
-#ifndef V8_KEN_DATA_V8_H
-#define V8_KEN_DATA_V8_H
+#ifndef V8_KEN_V8_H
+#define V8_KEN_V8_H
+
+#include "v8.h"
+
+namespace v8 {
+namespace ken {
 
 class V8 {
 public:
@@ -19,5 +24,8 @@ private:
   v8::Handle<v8::ObjectTemplate> global_;
   v8::Persistent<v8::Context> context_;
 };
+
+}
+}
 
 #endif

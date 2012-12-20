@@ -35,8 +35,7 @@
 #include "list.h"
 #include "splay-tree.h"
 
-// Used for persisting static variables
-class Statics;
+#include "v8-ken-data.h"
 
 namespace v8 {
 namespace internal {
@@ -91,6 +90,10 @@ class Zone {
 
   static unsigned allocation_size_;
 
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&allocation_size_);
+  }
+
  private:
   friend class Isolate;
   friend class ZoneScope;
@@ -143,8 +146,6 @@ class Zone {
 
   Segment* segment_head_;
   Isolate* isolate_;
-
-  friend class ::Statics;
 };
 
 

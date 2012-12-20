@@ -1,57 +1,62 @@
 #ifndef V8_KEN_DATA_H
 #define V8_KEN_DATA_H
 
-#include "v8-ken.h"
-#include "v8-ken-data-v8.h"
-#include "v8-ken-data-statics.h"
+#define MAX_PERSISTS 50
 
-#include "isolate.h"
+namespace v8 {
+
+namespace internal {
+class Isolate;
+}
+
+namespace ken {
+
+class V8;
 
 class Data {
+  struct Persist {
+    void* system;
+    void* ken;
+    size_t size;
+  };
+
 public:
-  static Data* instance() {
-    return (Data*) ken_get_app_data();
-  }
+  Data();
 
-  static Data* initialize() {
-    Data* data = new Data();
-    ken_set_app_data(data);
-    return data;
-  }
+  void save();
+  void restore();
+  void persist(void* system, size_t size);
 
-  Data() {
-    pid_ = getpid();
-    isolate_ = v8::internal::Isolate::New();
-
-    // Set default isolate
-    v8::internal::Isolate::RestoreDefaultIsolate(isolate_);
-
-    // Initialize V8 stuff after the isolate
-    statics_ = new Statics();
-    v8_ = new V8();
-  }
-
-  void save() {
-    statics_->save();
-  }
-
-  void restore() {
-    pid_ = getpid();
-    statics_->restore();
-
-    // Restore default isolate
-    v8::internal::Isolate::RestoreDefaultIsolate(isolate_);
+  template<class T>
+  void persist(T* system) {
+    persist(system, sizeof(T));
   }
 
   pid_t pid() {
     return pid_;
   }
 
+  V8* v8() {
+    return v8_;
+  }
+
+  static Data* instance();
+
+  static Data* initialize();
+
 private:
   pid_t pid_;
+
+  // Allocate on the heap, for some kind of reason ken gives an error when allocated on stack
+  Persist* persists_;
+  uint32_t persist_count_;
+
   v8::internal::Isolate* isolate_;
-  Statics* statics_;
   V8* v8_;
+
 };
+
+}
+}
 
 #endif

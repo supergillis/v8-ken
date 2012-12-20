@@ -40,8 +40,7 @@
 #include "../assembler.h"
 #include "../serialize.h"
 
-// Used for persisting static variables
-class Statics;
+#include "v8-ken-data.h"
 
 namespace v8 {
 namespace internal {
@@ -514,6 +513,14 @@ class CpuFeatures : public AllStatic {
 #endif
   };
 
+  static void initialize_persists(v8::ken::Data* data) {
+#ifdef DEBUG
+    data->persist(&initialized_);
+#endif
+    data->persist(&supported_);
+    data->persist(&found_by_runtime_probing_);
+  }
+
  private:
   // Safe defaults include SSE2 and CMOV for X64. It is always available, if
   // anyone checks, but they shouldn't need to check.
@@ -526,8 +533,6 @@ class CpuFeatures : public AllStatic {
 #endif
   static uint64_t supported_;
   static uint64_t found_by_runtime_probing_;
-
-  friend class ::Statics;
 
   DISALLOW_COPY_AND_ASSIGN(CpuFeatures);
 };

@@ -30,6 +30,8 @@
 
 #include "v8.h"
 
+#include "v8-ken-data.h"
+
 namespace v8 {
 namespace internal {
 
@@ -41,8 +43,15 @@ class ExternalizeStringExtension : public v8::Extension {
   static v8::Handle<v8::Value> Externalize(const v8::Arguments& args);
   static v8::Handle<v8::Value> IsAscii(const v8::Arguments& args);
   static void Register();
+
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&instance);
+  }
+
  private:
   static const char* const kSource;
+
+  static ExternalizeStringExtension* instance;
 };
 
 } }  // namespace v8::internal

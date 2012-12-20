@@ -30,6 +30,8 @@
 namespace v8 {
 namespace internal {
 
+ExternalizeStringExtension* ExternalizeStringExtension::instance = NULL;
+
 template <typename Char, typename Base>
 class SimpleStringResource : public Base {
  public:
@@ -133,11 +135,10 @@ v8::Handle<v8::Value> ExternalizeStringExtension::IsAscii(
 
 
 void ExternalizeStringExtension::Register() {
-  static ExternalizeStringExtension* externalize_extension = NULL;
-  if (externalize_extension == NULL)
-    externalize_extension = new ExternalizeStringExtension;
+  if (instance == NULL)
+    instance = new ExternalizeStringExtension;
   static v8::DeclareExtension externalize_extension_declaration(
-      externalize_extension);
+      instance);
 }
 
 } }  // namespace v8::internal

@@ -30,6 +30,8 @@
 
 #include "v8.h"
 
+#include "v8-ken-data.h"
+
 namespace v8 {
 namespace internal {
 
@@ -40,7 +42,13 @@ class GCExtension : public v8::Extension {
       v8::Handle<v8::String> name);
   static v8::Handle<v8::Value> GC(const v8::Arguments& args);
   static void Register();
+
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&gc_extension);
+  }
+
  private:
+  static GCExtension* gc_extension;
   static const char* const kSource;
 };
 

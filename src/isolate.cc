@@ -395,9 +395,6 @@ Isolate* Isolate::New() {
 }
 
 
-/*
- * TODO: fix leak on restart
- */
 void Isolate::RestoreDefaultIsolate(Isolate* isolate) {
   ASSERT(default_isolate_ == NULL);
 

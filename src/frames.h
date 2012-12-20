@@ -35,6 +35,8 @@
 namespace v8 {
 namespace internal {
 
+extern ReturnAddressLocationResolver return_address_location_resolver;
+
 typedef uint32_t RegList;
 
 // Get the number of registers in a given register list.

@@ -6,9 +6,14 @@ extern "C" {
 #include "kenapp.h"
 #include "kencom.h"
 
-extern void print(const char* str);
-
 #ifdef __cplusplus
 }
 #endif
 
+namespace v8 {
+namespace ken {
+
+extern void print(const char* str);
+
+}
+}

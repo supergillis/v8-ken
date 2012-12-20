@@ -5855,7 +5855,7 @@ class HeapDebugUtils {
 
 #endif
 
-bool initialized_gc = false;
+bool Heap::initialized_gc = false;
 
 bool Heap::SetUp(bool create_heap_objects) {
 #ifdef DEBUG

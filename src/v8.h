@@ -66,8 +66,7 @@
 #include "cpu-profiler-inl.h"
 #include "handles-inl.h"
 
-// Used for persisting static variables
-class Statics;
+#include "v8-ken-data.h"
 
 namespace v8 {
 namespace internal {
@@ -118,6 +117,15 @@ class V8 : public AllStatic {
   static void RemoveCallCompletedCallback(CallCompletedCallback callback);
   static void FireCallCompletedCallback(Isolate* isolate);
 
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&is_running_);
+    data->persist(&has_been_set_up_);
+    data->persist(&has_fatal_error_);
+    data->persist(&has_been_disposed_);
+    data->persist(&use_crankshaft_);
+    data->persist(&call_completed_callbacks_);
+  }
+
  private:
   static void InitializeOncePerProcessImpl();
   static void InitializeOncePerProcess();
@@ -136,8 +144,6 @@ class V8 : public AllStatic {
   static bool use_crankshaft_;
   // List of callbacks when a Call completes.
   static List<CallCompletedCallback>* call_completed_callbacks_;
-
-  friend class ::Statics;
 };
 
 

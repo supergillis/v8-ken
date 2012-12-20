@@ -52,6 +52,9 @@
 namespace v8 {
 namespace internal {
 
+HStatistics* HStatistics::instance_ = NULL;
+HTracer* HTracer::instance_ = NULL;
+
 HBasicBlock::HBasicBlock(HGraph* graph)
     : block_id_(graph->GetNextBlockID()),
       graph_(graph),

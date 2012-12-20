@@ -32,6 +32,8 @@
 #include "heap.h"
 #include "isolate.h"
 
+#include "v8-ken-data.h"
+
 namespace v8 {
 namespace internal {
 
@@ -131,6 +133,10 @@ class ElementsAccessor {
   static ElementsAccessor* ForArray(FixedArrayBase* array);
 
   static void InitializeOncePerProcess();
+
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&elements_accessors_);
+  }
 
  protected:
   friend class NonStrictArgumentsElementsAccessor;

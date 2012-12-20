@@ -32,6 +32,8 @@
 #include "hydrogen.h"
 #include "safepoint-table.h"
 
+#include "v8-ken-data.h"
+
 namespace v8 {
 namespace internal {
 
@@ -266,6 +268,10 @@ class LConstantOperand: public LOperand {
 
   static void SetUpCache();
 
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&cache);
+  }
+
  private:
   static const int kNumCachedOperands = 128;
   static LConstantOperand* cache;
@@ -301,6 +307,10 @@ class LStackSlot: public LOperand {
 
   static void SetUpCache();
 
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&cache);
+  }
+
  private:
   static const int kNumCachedOperands = 128;
   static LStackSlot* cache;
@@ -324,6 +334,10 @@ class LDoubleStackSlot: public LOperand {
   }
 
   static void SetUpCache();
+
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&cache);
+  }
 
  private:
   static const int kNumCachedOperands = 128;
@@ -349,6 +363,10 @@ class LRegister: public LOperand {
 
   static void SetUpCache();
 
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&cache);
+  }
+
  private:
   static const int kNumCachedOperands = 16;
   static LRegister* cache;
@@ -372,6 +390,10 @@ class LDoubleRegister: public LOperand {
   }
 
   static void SetUpCache();
+
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&cache);
+  }
 
  private:
   static const int kNumCachedOperands = 16;

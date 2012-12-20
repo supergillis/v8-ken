@@ -34,6 +34,9 @@ void operator delete[](void* ptr) {
   ken_delete(ptr);
 }
 
+namespace v8 {
+namespace ken {
+
 /***
  * V8 ken shell core
  */
@@ -92,17 +95,23 @@ bool eval(v8::Handle<v8::String> source, v8::Handle<v8::Value> name) {
   }
 }
 
+}
+}
+
 /***
  * V8 ken shell main loop
  */
 
 int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
-  static Data* data = Data::instance();
+  static v8::ken::Data* data = v8::ken::Data::instance();
 
   if (0 == ken_id_cmp(sender, kenid_NULL) && data == NULL) {
     fprintf(stderr, "Initializing...\n");
 
-    data = Data::initialize();
+    data = v8::ken::Data::initialize();
+
+    // Prepare REPL
+    v8::ken::print("> ");
   }
   else if (data->pid() != getpid()) {
     fprintf(stderr, "Restoring from %d...\n", data->pid());
@@ -111,7 +120,7 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
     data->restore();
 
     // Prepare REPL
-    print("> ");
+    v8::ken::print("> ");
 
     // Continue normal behaviour
     return ken_handler(msg, len, sender);
@@ -121,10 +130,10 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
     v8::HandleScope handle_scope;
     v8::Handle<v8::String> string = v8::Handle<v8::String>(v8::String::New((const char*) msg));
     v8::Handle<v8::String> name = v8::Handle<v8::String>(v8::String::New("(shell)"));
-    eval(string, name);
+    v8::ken::eval(string, name);
 
     // Prepare next REPL
-    print("\n> ");
+    v8::ken::print("\n> ");
   }
   else if (0 == ken_id_cmp(sender, kenid_alarm)) {
   }

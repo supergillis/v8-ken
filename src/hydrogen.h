@@ -37,6 +37,8 @@
 #include "type-info.h"
 #include "zone.h"
 
+#include "v8-ken-data.h"
+
 namespace v8 {
 namespace internal {
 
@@ -1224,12 +1226,16 @@ class HStatistics: public Malloced {
   void Initialize(CompilationInfo* info);
   void Print();
   void SaveTiming(const char* name, int64_t ticks, unsigned size);
+
   static HStatistics* Instance() {
-    static SetOncePointer<HStatistics> instance;
-    if (!instance.is_set()) {
-      instance.set(new HStatistics());
+    if (instance_ == NULL) {
+      instance_ = new HStatistics();
     }
-    return instance.get();
+    return instance_;
+  }
+
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&instance_);
   }
 
  private:
@@ -1249,6 +1255,8 @@ class HStatistics: public Malloced {
   unsigned total_size_;
   int64_t full_code_gen_;
   double source_size_;
+
+  static HStatistics* instance_;
 };
 
 
@@ -1296,11 +1304,14 @@ class HTracer: public Malloced {
   void TraceLiveRanges(const char* name, LAllocator* allocator);
 
   static HTracer* Instance() {
-    static SetOncePointer<HTracer> instance;
-    if (!instance.is_set()) {
-      instance.set(new HTracer("hydrogen.cfg"));
+    if (instance_ == NULL) {
+      instance_ = new HTracer("hydrogen.cfg");
     }
-    return instance.get();
+    return instance_;
+  }
+
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&instance_);
   }
 
  private:
@@ -1371,6 +1382,8 @@ class HTracer: public Malloced {
   HeapStringAllocator string_allocator_;
   StringStream trace_;
   int indent_;
+
+  static HTracer* instance_;
 };
 
 

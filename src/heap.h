@@ -42,6 +42,8 @@
 #include "v8-counters.h"
 #include "v8globals.h"
 
+#include "v8-ken-data.h"
+
 namespace v8 {
 namespace internal {
 
@@ -1602,8 +1604,14 @@ class Heap {
     ++global_ic_age_;
   }
 
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&initialized_gc);
+  }
+
  private:
   Heap();
+
+  static bool initialized_gc;
 
   // This can be calculated directly from a pointer to the heap; however, it is
   // more expedient to get at the isolate directly from within Heap methods.

@@ -43,7 +43,7 @@ namespace v8 {
 namespace internal {
 
 
-static ReturnAddressLocationResolver return_address_location_resolver = NULL;
+ReturnAddressLocationResolver return_address_location_resolver = NULL;
 
 
 // Resolves pc_address through the resolution address function if one is set.

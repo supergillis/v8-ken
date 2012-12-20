@@ -37,8 +37,7 @@
 #include "isolate.h"
 #include "list-inl.h"
 
-// Used for persisting static variables
-class Statics;
+#include "v8-ken-data.h"
 
 namespace v8 {
 
@@ -151,13 +150,16 @@ class RegisteredExtension {
   RegisteredExtension* next() { return next_; }
   RegisteredExtension* next_auto() { return next_auto_; }
   static RegisteredExtension* first_extension() { return first_extension_; }
+
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&first_extension_);
+  }
+
  private:
   Extension* extension_;
   RegisteredExtension* next_;
   RegisteredExtension* next_auto_;
   static RegisteredExtension* first_extension_;
-
-  friend class ::Statics;
 };
 
 
@@ -562,10 +564,12 @@ class Testing {
     stress_type_ = stress_type;
   }
 
+  static void initialize_persists(v8::ken::Data* data) {
+    data->persist(&stress_type_);
+  }
+
  private:
   static v8::Testing::StressType stress_type_;
-
-  friend class ::Statics;
 };
 
 } }  // namespace v8::internal

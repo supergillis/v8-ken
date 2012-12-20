@@ -44,7 +44,7 @@ v8::Handle<v8::Value> GCExtension::GC(const v8::Arguments& args) {
   return v8::Undefined();
 }
 
-GCExtension* gc_extension = NULL;
+GCExtension* GCExtension::gc_extension = NULL;
 
 void GCExtension::Register() {
   if (gc_extension == NULL) gc_extension = new GCExtension();
