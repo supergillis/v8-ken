@@ -105,6 +105,8 @@ An example of these issues:
 ## Debugging
 We have tried to debug this error but it isn't as simple as it looks. This is what we have tried, it might come in handy if you want to debug it yourself!
 
-[Here](https://gist.github.com/4352602) is a Gist that contains the debugging output of the last listed issue.
+[Here is a Gist](https://gist.github.com/4352637) that contains the debugging output of the last listed issue.
 
-Note that in GDB we first disable SIGSEGV stopping and printing with `handle SIGSEGV nostop noprint`. This is because Ken makes its persistent heap read-only. So each time you try to write to the persistent heap the SIGSEGV handler gets called and Ken knows that the written memory is dirty!
+Note that in GDB we first disable SIGSEGV stopping and printing with `handle SIGSEGV nostop noprint`. This is because Ken makes its persistent heap read-only. So each time you try to write to the persistent heap the SIGSEGV handler gets called and Ken knows that the written memory is dirty! Not: when you try to access non-existing memory this handler also gets called. But then it exits `APPERR(info->si_code == SEGV_ACCERR)`.
+
+In the Gist we can see that the persistent V8 shell crashes when running JIT compiled Javascript. And finally it tries to access some non-existing object and crashes...
