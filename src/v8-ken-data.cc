@@ -62,7 +62,7 @@ Data::Data() {
 }
 
 void Data::persist(void* system, size_t size) {
-  /*NTF(persists_ != NULL);
+  NTF(persists_ != NULL);
 
   Persist* current = &persists_[persist_count_];
   current->system = system; NTF(current->system != NULL);
@@ -70,23 +70,23 @@ void Data::persist(void* system, size_t size) {
   memcpy(current->ken, system, size);
   current->size = size; NTF(current->size != 0);
 
-  persist_count_++;*/
+  persist_count_++;
 }
 
 void Data::save() {
-  /*for (uint32_t index = 0; index < persist_count_; index++) {
+  for (uint32_t index = 0; index < persist_count_; index++) {
     Persist* persist = &persists_[index];
     memcpy(persist->ken, persist->system, persist->size);
-  }*/
+  }
 }
 
 void Data::restore() {
   pid_ = getpid();
 
-  /*for (uint32_t index = 0; index < persist_count_; index++) {
+  for (uint32_t index = 0; index < persist_count_; index++) {
     Persist* persist = &persists_[index];
     memcpy(persist->system, persist->ken, persist->size);
-  }*/
+  }
 
   // Restore default isolate
   v8::internal::Isolate::RestoreDefaultIsolate(isolate_);
