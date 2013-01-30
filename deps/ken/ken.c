@@ -65,7 +65,7 @@
 #include "kenext.h"
 
 /* for simplicity the size of this next struct is the basic unit
-   of allocation in persistent heap; its size defines alignment */
+   of allocation in persistent heap */
 typedef struct ken_mem_chunk_hdr {
   size_t nbytes;                    /* size of this chunk incl hdr */
   struct ken_mem_chunk_hdr * next;  /* for free list */
@@ -177,6 +177,9 @@ const char * ken_argv(int idx) {
 do { (var) = lseek(e_eot_filedes, 0, SEEK_CUR);  \
      NTF(0 <= (var));                            } while (0)
 
+#define ALIGNED(ptr, alignment) !((size_t)(ptr) & ((alignment) - 1))
+#define ALIGNMENT_SHIFT(ptr, alignment) (alignment) - ((size_t)(ptr) & ((alignment) - 1))
+
 /* Notes to user: The current implementation of the Ken persistent
    heap is straightforward and is provided as a convenience (compared
    with a simpler page allocator or "here's a pointer to a whole
@@ -189,8 +192,9 @@ do { (var) = lseek(e_eot_filedes, 0, SEEK_CUR);  \
    checkpoints contain all heap pages dirtied during a turn.
    Therefore, all else being equal, you should prefer a memory
    allocator that dirties as few memory pages as possible. */
-void * ken_malloc(size_t size) {
-  ken_mem_chunk_hdr_t *r, **p = &(e_state_blob->freelist);
+void * ken_malloc_aligned(size_t size, size_t alignment) {
+  ken_mem_chunk_hdr_t *r, *q, **p = &(e_state_blob->freelist);
+  KENASRT(ALIGNED(alignment, sizeof *r));
   int32_t nunits = 1 + NPIECES(size, sizeof *r);
   size_t needed = nunits * sizeof *r;
   if (0 == size)
@@ -199,28 +203,45 @@ void * ken_malloc(size_t size) {
     KENASRT(BLOB_HEAP_PTR(*p));
     KENASRT(VALID_ALLOC_ALIGNMENT(*p));
     KENASRT(VALID_CHUNKSIZE((*p)->nbytes));
-    if (needed <= (*p)->nbytes) {  /* chunk is big enough */
-      size_t extra = (*p)->nbytes - needed;
+    size_t needed_for_alignment = ALIGNED(*p + 1, alignment) ? 0 : ALIGNMENT_SHIFT(*p + 1, alignment);
+    KENASRT(needed_for_alignment < alignment);
+    if (needed + needed_for_alignment <= (*p)->nbytes ) {  /* chunk is big enough */
+      size_t extra = (*p)->nbytes - needed - needed_for_alignment;
       KENASRT(0 == extra || sizeof *r == extra || VALID_CHUNKSIZE(extra));
       r = *p;
       if (2 > extra / sizeof *r)   /* too small to split, return whole */
         *p = r->next;
       else {                       /* split chunk */
-        *p += nunits;
-        (*p)->nbytes = extra;
-        (*p)->next   = r->next;
-        r->nbytes = nunits * sizeof *r;
+        if (2 <= needed_for_alignment / sizeof *r) {
+          r += needed_for_alignment / sizeof *r;
+          q = r + nunits;
+          q->nbytes = extra - needed_for_alignment;
+          q->next = (*p)->next;
+          (*p)->nbytes = needed_for_alignment;
+          (*p)->next = q;
+          r->nbytes = needed;
+        } else {
+          *p += nunits;
+          (*p)->nbytes = extra;
+          (*p)->next   = r->next;
+          r->nbytes = nunits * sizeof *r;
+        }
       }
       r->next = NULL;
       KENASRT(BLOB_HEAP_PTR(r));
       KENASRT(VALID_ALLOC_ALIGNMENT(r));
       KENASRT(BLOB_HEAP_PTR(*p));
       KENASRT(VALID_ALLOC_ALIGNMENT(*p));
+      KENASRT(ALIGNED(1 + r, alignment));
       return 1 + r;
     }
     p = &(*p)->next;
   }
   return NULL;
+}
+
+void * ken_malloc(size_t size) {
+  return ken_malloc_aligned(size, sizeof(ken_mem_chunk_hdr_t));
 }
 
 /* Growing STL strings/vectors can lead to free list cluttered with

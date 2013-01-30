@@ -72,6 +72,7 @@ extern const char * ken_argv(int index);
 /* For Ken persistent heap.  These act like malloc()/free().
    See implementation for notes on performance. */
 extern void * ken_malloc(size_t size);
+extern void * ken_malloc_aligned(size_t size, size_t alignment);
 extern void   ken_free(void * p);
 
 /* Deprecated; avoid use if at all possible.  Returns nonzero iff

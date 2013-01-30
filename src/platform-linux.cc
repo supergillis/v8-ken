@@ -621,10 +621,9 @@ bool VirtualMemory::Guard(void* address) {
   return true;
 }
 
-
 void* VirtualMemory::ReserveRegion(size_t size) {
   assert(0 != ken_heap_ready);
-  void* base = ken_malloc(size);
+  void* base = ken_malloc_aligned(size, 0x1000);
   assert(NULL != base);
   UpdateAllocatedSpaceLimits(base, size);
   return base;
