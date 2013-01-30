@@ -57,6 +57,7 @@ Data::Data() {
   v8::internal::ElementsAccessor::initialize_persists(this);
   v8::internal::HStatistics::initialize_persists(this);
   v8::internal::HTracer::initialize_persists(this);
+  v8::internal::RuntimeProfiler::initialize_persists(this);
 
   persist(&v8::internal::return_address_location_resolver);
 }
