@@ -1,3 +1,4 @@
+#include <string.h>
 #include "v8.h"
 #include "v8-ken.h"
 #include "v8-ken-data.h"
@@ -11,6 +12,7 @@
 static void* ken_new(size_t s) {
   assert(0 != ken_heap_ready);
   void* ptr = ken_malloc(s);
+  memset(ptr, '\0', s);
   assert(NULL != ptr);
   return ptr;
 }
