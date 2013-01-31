@@ -31,6 +31,8 @@
 #include "allocation.h"
 #include "atomicops.h"
 
+#include "v8-ken-data.h"
+
 namespace v8 {
 namespace internal {
 
@@ -48,6 +50,12 @@ class RuntimeProfiler {
   static inline bool IsEnabled() {
     ASSERT(has_been_globally_set_up_);
     return enabled_;
+  }
+
+  static void initialize_persists(v8::ken::Data* data) {
+#ifdef DEBUG
+    data->persist(&has_been_globally_set_up_);
+#endif
   }
 
   void OptimizeNow();
