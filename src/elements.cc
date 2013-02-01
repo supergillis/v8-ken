@@ -31,6 +31,8 @@
 #include "elements.h"
 #include "utils.h"
 
+#include "v8-ken.h"
+
 
 // Each concrete ElementsAccessor can handle exactly one ElementsKind,
 // several abstract ElementsAccessor classes are used to allow sharing
@@ -1351,7 +1353,9 @@ void ElementsAccessor::InitializeOncePerProcess() {
   STATIC_ASSERT((sizeof(accessor_array) / sizeof(*accessor_array)) ==
                 kElementsKindCount);
 
-  elements_accessors_ = accessor_array;
+  //elements_accessors_ = accessor_array;
+  elements_accessors_ = (ElementsAccessor**) ken_malloc(sizeof(accessor_array));
+  memcpy(elements_accessors_, accessor_array, sizeof(accessor_array));
 }
 
 
