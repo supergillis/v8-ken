@@ -112,8 +112,8 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
 
     data = v8::ken::Data::initialize();
 
-		v8::internal::Isolate * isolate = v8::internal::Isolate::Current();
-		isolate->heap()->Verify();
+    // Verify heap
+    v8::internal::Isolate::Current()->heap()->Verify();
 
     // Prepare REPL
     v8::ken::print("> ");
@@ -124,8 +124,8 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
     // Update process id, restore V8, restore statics, ...
     data->restore();
 
-		v8::internal::Isolate * isolate = v8::internal::Isolate::Current();
-		isolate->heap()->Verify();
+    // Verify heap
+    v8::internal::Isolate::Current()->heap()->Verify();
 
     // Prepare REPL
     v8::ken::print("> ");
@@ -134,14 +134,11 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
     return ken_handler(msg, len, sender);
   }
   else if (0 == ken_id_cmp(sender, kenid_stdin)) {
-    // Execute javascript string
-		v8::internal::Isolate * isolate = v8::internal::Isolate::Current();
-		isolate->heap()->Verify();
-
     v8::HandleScope handle_scope;
-    v8::Handle<v8::String> string = v8::String::New((const char*) msg);
+    v8::Handle<v8::String> string = v8::String::New((const char*) msg,);
     v8::Handle<v8::String> name = v8::String::New("(shell)");
 
+    // Execute javascript string
     v8::ken::eval(string, name);
 
     // Prepare next REPL
