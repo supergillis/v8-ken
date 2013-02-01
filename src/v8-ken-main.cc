@@ -135,7 +135,7 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
   }
   else if (0 == ken_id_cmp(sender, kenid_stdin)) {
     v8::HandleScope handle_scope;
-    v8::Handle<v8::String> string = v8::String::New((const char*) msg,);
+    v8::Handle<v8::String> string = v8::String::New((const char*) msg, len);
     v8::Handle<v8::String> name = v8::String::New("(shell)");
 
     // Execute javascript string
