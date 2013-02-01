@@ -255,6 +255,8 @@ class HeapStats;
 class Isolate;
 class WeakObjectRetainer;
 
+extern void* lowest_ever_allocated;
+extern void* highest_ever_allocated;
 
 typedef String* (*ExternalStringTableUpdaterCallback)(Heap* heap,
                                                       Object** pointer);
@@ -1606,6 +1608,8 @@ class Heap {
 
   static void initialize_persists(v8::ken::Data* data) {
     data->persist(&initialized_gc);
+    data->persist(&lowest_ever_allocated);
+    data->persist(&highest_ever_allocated);
   }
 
  private:
