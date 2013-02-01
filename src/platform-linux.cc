@@ -338,8 +338,8 @@ double OS::LocalTimeOffset() {
 // and verification).  The estimate is conservative, i.e., not all addresses in
 // 'allocated' space are actually allocated to our heap.  The range is
 // [lowest, highest), inclusive on the low and and exclusive on the high end.
-static void* lowest_ever_allocated = reinterpret_cast<void*>(-1);
-static void* highest_ever_allocated = reinterpret_cast<void*>(0);
+void* lowest_ever_allocated = reinterpret_cast<void*>(-1);
+void* highest_ever_allocated = reinterpret_cast<void*>(0);
 
 
 static void UpdateAllocatedSpaceLimits(void* address, int size) {
