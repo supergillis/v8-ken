@@ -47,11 +47,11 @@ There are still some issues that remain unsolved. They are best explained using 
 * Run `./v8_ken_shell 127.0.0.1:6666`;
 * Define some variables, e.g. `a = 1` and `b = 2`;
 * Crash and restart the shell;
-* Now try to print the previously defined variables. There are two possible outputs:
-    1. It always prints <null> even when entering unknown variables or when entering declaration of variables;
-    2. It prints the variable, but printing undefined variables crashes the shell.
+* Now try to print the previously defined variables. There are two possible outputs, which are completely random:
+    1. It just prints the variable, i.e. the expected behaviour;
+    2. It always prints <null> even when evaluating unknown variables or when entering declaration of variables.
 
-An example of these issues:
+An example of this issue:
 
     gillis@gillis-desktop:~/projects/v8-ken$ rm ken_* -f
     gillis@gillis-desktop:~/projects/v8-ken$ ./v8_ken_shell 127.0.0.1:6666
@@ -85,22 +85,6 @@ An example of these issues:
     Restoring from 7259...
     > <null>
     > ^C
-    gillis@gillis-desktop:~/projects/v8-ken$ ./v8_ken_shell 127.0.0.1:6666
-    7267:../deps/ken/ken.c:841: handler process starting
-    7267:../deps/ken/ken.c:512: zero-byte EOT file "ken_127.0.0.1:6666_eot_0000000000000000005"
-    7267:../deps/ken/ken.c:553: deleting corrupt EOT file "ken_127.0.0.1:6666_eot_0000000000000000005"
-    7267:../deps/ken/ken.c:962: recovering from turn 4
-    7268:../deps/ken/kenext.c:404: externalizer starting
-    7269:../deps/ken/kenpat.c:60: patcher starting
-    7267:../deps/ken/ken.c:978: handler process main loop starting
-    a
-    Restoring from 7264...
-    > 1
-    > b
-    v8_ken_shell: ../deps/ken/ken.c:409: i_ken_SIGSEGV_sigaction: Assertion \`((void)"APPERR", (info->si_code == SEGV_ACCERR))' failed.
-    7268:../deps/ken/kenext.c:508: read pipe returns zero, exit from externalizer
-    Aborted
-    7269:../deps/ken/kenpat.c:70: read pipe returns zero, exit from patcher
 
 ## Debugging
 We have tried to debug this error but it isn't as simple as it looks. This is what we have tried, it might come in handy if you want to debug it yourself!
