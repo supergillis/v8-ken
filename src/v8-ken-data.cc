@@ -91,6 +91,9 @@ void Data::restore() {
 
   // Restore default isolate
   v8::internal::Isolate::RestoreDefaultIsolate(isolate_);
+  v8::internal::ExecutionAccess access(isolate_);
+  isolate_->stack_guard()->ClearThread(access);
+  isolate_->stack_guard()->InitThread(access);
 }
 
 }
