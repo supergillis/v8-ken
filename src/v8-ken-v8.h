@@ -4,36 +4,17 @@
 #include "v8.h"
 
 namespace v8 {
-namespace ken {
+  namespace ken {
+    void Initialize(Handle<Object> object);
 
-class V8 {
-public:
-  V8() :
-      handle_scope_(),
-      global_(v8::ObjectTemplate::New()),
-      context_(v8::Context::New(NULL, global_)) {
-    context_->Enter();
+    const char* ToCString(const String::Utf8Value& value);
+
+    bool Eval(const char* source, int32_t length);
+    bool Eval(Handle<String> source);
+
+    bool HandleException(TryCatch* tryCatch);
+    bool HandleReceive(const char* string, int32_t length);
   }
-
-  ~V8() {
-    context_.Dispose();
-  }
-
-  v8::Handle<v8::ObjectTemplate> global() {
-    return global_;
-  }
-
-  v8::Persistent<v8::Context> context() {
-    return context_;
-  }
-
-private:
-  v8::HandleScope handle_scope_;
-  v8::Handle<v8::ObjectTemplate> global_;
-  v8::Persistent<v8::Context> context_;
-};
-
-}
 }
 
 #endif

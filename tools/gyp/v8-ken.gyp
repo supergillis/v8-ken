@@ -19,8 +19,10 @@
         '../../deps/ken',
       ],
       'sources': [
+        '../../src/v8-ken.cc',
         '../../src/v8-ken-main.cc',
         '../../src/v8-ken-data.cc',
+        '../../src/v8-ken-v8.cc',
       ],
     },
   ]

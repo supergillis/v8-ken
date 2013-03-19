@@ -11,9 +11,8 @@ extern "C" {
 #endif
 
 namespace v8 {
-namespace ken {
-
-extern void print(const char* str);
-
-}
+  namespace ken {
+    extern void print(const char* string);
+    extern void print(const char* string, int32_t length);
+  }
 }
