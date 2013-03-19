@@ -91,6 +91,11 @@ void Data::restore() {
 
   // Restore default isolate
   v8::internal::Isolate::RestoreDefaultIsolate(isolate_);
+
+    // Verify heap
+  v8::internal::Isolate::Current()->heap()->Verify();
+
+  // Reset stack guard
   v8::internal::ExecutionAccess access(isolate_);
   isolate_->stack_guard()->ClearThread(access);
   isolate_->stack_guard()->InitThread(access);

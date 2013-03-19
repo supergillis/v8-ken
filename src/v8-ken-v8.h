@@ -19,6 +19,14 @@ public:
     context_.Dispose();
   }
 
+  v8::Handle<v8::ObjectTemplate> global() {
+    return global_;
+  }
+
+  v8::Persistent<v8::Context> context() {
+    return context_;
+  }
+
 private:
   v8::HandleScope handle_scope_;
   v8::Handle<v8::ObjectTemplate> global_;
