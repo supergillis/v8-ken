@@ -95,8 +95,9 @@ namespace v8 {
       // Restore default isolate
       v8::internal::Isolate::RestoreDefaultIsolate(isolate_);
 
-        // Verify heap
+#ifdef DEBUG
       isolate_->heap()->Verify();
+#endif
 
       // Reset stack guard
       v8::internal::ExecutionAccess access(isolate_);
