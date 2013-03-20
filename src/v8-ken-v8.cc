@@ -44,11 +44,12 @@ namespace v8 {
 
       if (!result->IsUndefined()) {
         // If all went well and the result wasn't undefined then print
-        // the returned value.
+        // the returned value
         String::Utf8Value string(result);
-
-        // Convert to cstring and print
-        print(ToCString(string));
+        if (string.length() > 0) {
+          print(ToCString(string));
+          print("\n");
+        }
       }
       return true;
     }
@@ -57,8 +58,13 @@ namespace v8 {
       HandleScope handleScope;
 
       // Convert exception to string and print
-      String::Utf8Value exception(tryCatch->Exception());
-      print(ToCString(exception));
+      String::Utf8Value message(tryCatch->Exception());
+      fprintf(stderr, "Unhandled exception: %s\n", ToCString(message));
+
+      // Crash the application on non-native (user-thrown) errors
+      Handle<Value> exception = tryCatch->Exception();
+      if (!exception.IsEmpty() && !exception->IsNativeError())
+        abort();
 
       return true;
     }

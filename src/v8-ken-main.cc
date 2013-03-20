@@ -35,7 +35,7 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
     v8::ken::Eval((const char*) msg, len);
 
     // Prepare next REPL
-    v8::ken::print("\n> ");
+    v8::ken::print("> ");
   }
   else if (0 == ken_id_cmp(sender, kenid_alarm)) {
     // Do nothing on alarm
