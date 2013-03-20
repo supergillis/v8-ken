@@ -40,7 +40,9 @@ namespace v8 {
     }
 
     void print(const char* string, int32_t length) {
-      ken_send(kenid_stdout, string, length);
+      if (length > 0) {
+        ken_send(kenid_stdout, string, length);
+      }
     }
   }
 }
