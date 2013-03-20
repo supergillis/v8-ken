@@ -13,7 +13,7 @@ namespace v8 {
     bool Eval(Handle<String> source);
 
     bool HandleException(TryCatch* tryCatch);
-    bool HandleReceive(const char* string, int32_t length);
+    bool HandleReceive(const char* sender, const char* string, int32_t length);
   }
 }
 

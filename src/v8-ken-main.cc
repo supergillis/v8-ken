@@ -42,7 +42,10 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t sender) {
   }
   else {
     // Incoming message
-    v8::ken::HandleReceive((const char*) msg, len);
+    char sender_string[22];
+    ken_id_to_string(sender, sender_string, 22);
+
+    v8::ken::HandleReceive(sender_string, (const char*) msg, len);
   }
 
   // Save data at each turn

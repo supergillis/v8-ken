@@ -69,7 +69,7 @@ namespace v8 {
       return true;
     }
 
-    bool HandleReceive(const char* string, int32_t length) {
+    bool HandleReceive(const char* sender, const char* string, int32_t length) {
       HandleScope handle_scope;
 
       Handle<Object> global = Context::GetCurrent()->Global();
@@ -77,10 +77,11 @@ namespace v8 {
 
       if (value->IsFunction()) {
         Handle<Function> ken_receive = Handle<Function>::Cast(value);
-        Handle<Value> args[1];
-        args[0] = String::New(string, length);
+        Handle<Value> args[2];
+        args[0] = String::New(sender);
+        args[1] = String::New(string, length);
 
-        ken_receive->Call(global, 1, args);
+        ken_receive->Call(global, 2, args);
         return true;
       }
 
