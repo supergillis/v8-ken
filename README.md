@@ -1,46 +1,12 @@
 # v8-ken
-The goal of this project is to add orthogonal persistence to the V8 engine. So we want a V8 where all application state is stored in a persistent heap.
-
-## Making V8 Persistent
-So how do we plan to make V8 persistent? Well, we have to make all application data persistent!
-
-* Persist global and static variables;
-* Replace malloc et al. with ken_malloc and free with ken_free;
-* Overload new and delete operators.
-
-## Ken
-Ken is the C library we use that provides abstractions for a persistent heap. You can read more about the Ken library at the following link, [http://ai.eecs.umich.edu/~tpkelly/Ken/](http://ai.eecs.umich.edu/~tpkelly/Ken/).
-
-In this repository all the Ken stuff lives in [https://github.com/supergillis/v8-ken/blob/v8-ken/src/v8-ken-main.cc](src/v8-ken-main.cc):
-* You can see that we overload the new and delete operators, so all heap objects will be created on the persistent heap;
-* Then we have all the code for our (very) simple V8 shell;
-* And finally we have the ken_handler which we need to incorporate Ken. You can read more about this at the provided link.
-
-So that's the code for creating objects on the persistent heap and for running the (very) simple V8 shell. What about the code for saving and restoring global and static variables? This code lives in [https://github.com/supergillis/v8-ken/blob/v8-ken/src/v8-ken-data.cc](src/v8-ken-data.cc):
-* We use an array of persists. A persist contains a pointer to a variable in the program and a pointer to the associated persistent memory;
-* To persist a static variable we need to add the variable to the array of persists;
-* The persists are restored on starting the application and they are saved on each turn in the ken_handler.
-
-## Work Done
-* All malloc's et al. are replaced with Ken's persistent allocations;
-* All (or almost all?) static and global variables are persisted;
-* The default isolate is also persisted;
-* The new and delete operators are overloaded;
-* VirtualMemory uses Ken memory instead of mmap;
-* We can start an initial V8 shell, define some variables, crash the application (CTRL+C), restart the application and use the previously defined variables.
+This project adds orthogonal persistence to the V8 engine. This means that we have created a version of V8 where all objects, arrays, functions, ... are automatically persisted.
 
 ## Example
-Run `v8_ken_shell 127.0.0.1:6666` for the first time and define some stuff.
+If the above wasn't very clear, here is a small example of what this actually means.
+
+There is a simple shell for the orthogonal persistent V8, i.e. `v8_ken_shell`. We run `v8_ken_shell 127.0.0.1:6666` for the first time and define some stuff.
 
     $ ./v8_ken_shell 127.0.0.1:6666
-    17336:../deps/ken/ken.c:862: handler process starting
-    17336:../deps/ken/kencom.c:200: resetting errno == 2: "No such file or directory"
-    17336:../deps/ken/kencom.c:200: resetting errno == 2: "No such file or directory"
-    17336:../deps/ken/kencom.c:200: resetting errno == 2: "No such file or directory"
-    17336:../deps/ken/ken.c:992: resetting errno == 2: "No such file or directory"
-    17337:../deps/ken/kenext.c:404: externalizer starting
-    17336:../deps/ken/ken.c:999: handler process main loop starting
-    17338:../deps/ken/kenpat.c:60: patcher starting
     Initialized session
     > var create_counter = function() { var counter = 0; return function() { return counter++; }; };
     > var a = create_counter();
@@ -50,7 +16,7 @@ Run `v8_ken_shell 127.0.0.1:6666` for the first time and define some stuff.
     1
     > a();
     2
-    > var b = create_counter();                                        
+    > var b = create_counter();
     > b();
     0
     > b();
@@ -59,21 +25,12 @@ Run `v8_ken_shell 127.0.0.1:6666` for the first time and define some stuff.
     3
     > ^C
 
-Crash (CTRL+C) the shell and run it again. Everything still works!
+The last input, `CTRL+C`, just 'crashes' the shell. A non-orthogonal persistent language would lose all of its data - data that is not stored in an external database - but the persistent V8 engine does! Here's what happens when we restart the shell:
 
     $ ./v8_ken_shell 127.0.0.1:6666
-    17348:../deps/ken/ken.c:862: handler process starting
-    17348:../deps/ken/ken.c:533: zero-byte EOT file "ken_127.0.0.1:6666_eot_0000000000000000010"
-    17348:../deps/ken/ken.c:574: deleting corrupt EOT file "ken_127.0.0.1:6666_eot_0000000000000000010"
-    17348:../deps/ken/ken.c:670: begin truncate (hang here might be due to poor support for sparse files)
-    17348:../deps/ken/ken.c:672: end truncate
-    17348:../deps/ken/ken.c:983: recovering from turn 9
-    17349:../deps/ken/kenext.c:404: externalizer starting
-    17348:../deps/ken/ken.c:999: handler process main loop starting
-    17350:../deps/ken/kenpat.c:60: patcher starting
-    create_counter
     Restored session
-    > function () { var counter = 0; return function() { return counter++; }; }
+    > create_counter
+    function () { var counter = 0; return function() { return counter++; }; }
     > a();
     4
     > a();
@@ -82,13 +39,40 @@ Crash (CTRL+C) the shell and run it again. Everything still works!
     2
     > ^C
 
-To start over again, just clean up Ken's state files.
+The V8 engine remembers all the variables, even the `create_counter` function! We can just continue programming as if there was no crash!
 
-    $ rm ken_127.0.0.1\:6666_* -f
+## Context
+This project is part of my master thesis. The thesis actually consists of two parts:
 
-## Future Work
-* Better shell with history, ...;
-* Integrate the persistent V8 in node.js!
+  * The automatically-persisting V8 engine;
+  * A JavaScript framework that provides ActiveRecord-style schemas, transactions, ...
+
+The main idea of the latter is that when you have a persistent language, you have all kinds of data floating around, but there is no easy way to manage it. A big advantage when using a database backend is that you can define schemas, you can run queries, you can execute several statements in a transaction, ... With an orthogonal persistent language, this is not possible. Thus the goal of the framework is to make it easier for the developer to handle the unmanaged data.
+
+## Technical Details
+To make the V8 engine persistent we make use of the Ken library.
+
+### Ken
+Ken is a C library that provides abstractions to create a heap that is automatically persisted. It also provides abstractions to send messages which are guaranteed to be delivered to the destination (which is another Ken process). Here's an overview:
+
+  * `ken_malloc(size_t size)`: allocates a chunk of memory on the persistent heap;
+  * `ken_free(void* pointer)`: frees a chunk of memory on the persistent heap;
+  * `ken_send(kenid_t dest, const void* msg, int32_t len)`: sends a message to another Ken application.
+
+The Ken library is event-driven. Each event triggers a call to a user-specified handler. An invocation of this handler is called a turn. When a turn completes successfully, the dirty memory is written to the last working snapshot of the persistent heap.
+
+The user-specified handler in our persistent V8 implementation is just read-eval-print. After reading, evaluating and printing, Ken writes the dirty memory to the persistent heap.
+
+My simple explanation does not honor Ken at all, so if you want to know the details of the Ken library, you can read more about it at the following link, [http://ai.eecs.umich.edu/~tpkelly/Ken/](http://ai.eecs.umich.edu/~tpkelly/Ken/).
+
+### Persistent V8
+The integration of Ken in the V8 engine was cumbersome. Here are the steps, from least to most cumbersome:
+
+  1. The new and delete operators had to be overloaded to also use the persistent heap;
+  2. We had to replace all `malloc` and `free` with `ken_malloc` and `ken_free`;
+  3. Then we had to make the V8 heap also use Ken memory.
+  4. And last, but certainly not least, we had to track down all global and static variables and also persist them on the persistent heap.
+  5. Debug, debug, debug!
 
 ## Compiling and Running
 The code can only run on 64-bit POSIX machines since the Ken library can only function on 64-bit POSIX machines.
@@ -100,5 +84,3 @@ The code can only run on 64-bit POSIX machines since the Ken library can only fu
     make x64.release # Ken only works for 64-bit machines
     cd out/x64.release
     ./v8_ken_shell 127.0.0.1:6666 # specify an IP and a port, Ken needs this for its messaging system
-
-That's how you compile and run the `v8_ken_shell`.
