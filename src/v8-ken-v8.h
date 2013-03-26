@@ -7,13 +7,18 @@ namespace v8 {
   namespace ken {
     void Initialize(Handle<Object> object);
 
+    const char* ToCString(Handle<String> value);
     const char* ToCString(const String::Utf8Value& value);
 
-    bool Eval(const char* source, int32_t length);
-    bool Eval(Handle<String> source);
+    Handle<Value> JSONStringify(Handle<Value> object);
+    Handle<Value> JSONParse(Handle<String> json);
 
-    bool HandleException(TryCatch* tryCatch);
-    bool HandleReceive(const char* sender, const char* message, int32_t length);
+    Handle<Value> Eval(const char* source, int32_t length);
+    Handle<Value> Eval(Handle<String> source);
+
+    Handle<Value> HandleReceive(Handle<String> sender, Handle<String> message);
+
+    void ReportException(TryCatch* tryCatch);
   }
 }
 

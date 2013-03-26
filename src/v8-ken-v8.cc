@@ -5,7 +5,7 @@
 namespace v8 {
   namespace ken {
     Handle<String> ReadFile(const char* name);
-    
+
     Handle<Value> Print(const Arguments& args);
     Handle<Value> Send(const Arguments& args);
     Handle<Value> Read(const Arguments& args);
@@ -18,121 +18,88 @@ namespace v8 {
       object->Set(String::New("load"), FunctionTemplate::New(Load)->GetFunction());
     }
 
+    const char* ToCString(Handle<String> value) {
+      return ToCString(String::Utf8Value(value));
+    }
+
     const char* ToCString(const String::Utf8Value& value) {
       return *value ? *value : "NULL";
     }
-    
-    Handle<String> JSONStringify(Handle<Value> object) {
+
+    Handle<Value> JSONStringify(Handle<Value> object) {
       HandleScope handle_scope;
-      TryCatch try_catch;
 
       Handle<Object> global = Context::GetCurrent()->Global();
       Handle<Object> JSON = global->Get(String::New("JSON"))->ToObject();
       Handle<Function> JSON_stringify = Handle<Function>::Cast(JSON->Get(String::New("stringify")));
-      
+
       Handle<Value> args[1];
       args[0] = object;
 
-      // Try to stringify the argument
-      Handle<Value> result = JSON_stringify->Call(global, 1, args);
-
-      if (try_catch.HasCaught()) {
-        HandleException(&try_catch);
-        return String::Empty();
-      }
-      
-      return Handle<String>::Cast(result);
+      return JSON_stringify->Call(global, 1, args);
     }
-    
+
     Handle<Value> JSONParse(Handle<String> json) {
       HandleScope handle_scope;
-      TryCatch try_catch;
-      
+
       Handle<Object> global = Context::GetCurrent()->Global();
       Handle<Object> JSON = global->Get(String::New("JSON"))->ToObject();
       Handle<Function> JSON_parse = Handle<Function>::Cast(JSON->Get(String::New("parse")));
-      
+
       Handle<Value> args[1];
       args[0] = json;
 
-      // Try to parse the JSON string
-      Handle<Value> result = JSON_parse->Call(global, 1, args);
-
-      if (try_catch.HasCaught()) {
-        HandleException(&try_catch);
-        return Undefined();
-      }
-      
-      return result;
+      return JSON_parse->Call(global, 1, args);
     }
 
-    bool Eval(const char* source, int32_t length) {
+    Handle<Value> Eval(const char* source, int32_t length) {
       HandleScope handle_scope;
       Handle<String> source_string = String::New(source, length);
       return Eval(source_string);
     }
 
-    bool Eval(Handle<String> source) {
+    Handle<Value> Eval(Handle<String> source) {
       HandleScope handle_scope;
-      Context::Scope context_scope(Context::GetCurrent());
 
-      TryCatch try_catch;
       Handle<String> name = String::New("(shell)");
       Handle<Script> script = Script::Compile(source, name);
 
       if (script.IsEmpty()) {
-        HandleException(&try_catch);
-        return false;
+        return Undefined();
       }
 
       Handle<Value> result = script->Run();
-
-      if (try_catch.HasCaught() || result.IsEmpty()) {
-        HandleException(&try_catch);
-        return false;
+      if (result.IsEmpty()) {
+        return Undefined();
       }
 
-      if (!result->IsUndefined()) {
-        // If all went well and the result wasn't undefined then print
-        // the returned value
-        Handle<String> stringified = JSONStringify(result);
-        if (stringified->Length() > 0) {
-          String::Utf8Value utf8(stringified);
-          print(ToCString(utf8));
-          print("\n");
-        }
-      }
-      return true;
+      return result;
     }
 
-    bool HandleException(TryCatch* try_catch) {
-      // Rethrow exception
+    void ReportException(TryCatch* try_catch) {
       String::Utf8Value utf8(try_catch->Exception());
       print(ToCString(utf8));
       print("\n");
-
-      return true;
     }
 
-    bool HandleReceive(const char* sender, const char* message, int32_t length) {
+    Handle<Value> HandleReceive(Handle<String> sender, Handle<String> message) {
       HandleScope handle_scope;
 
       Handle<Object> global = Context::GetCurrent()->Global();
       Handle<Value> function = global->Get(String::New("receive"));
 
       if (!function->IsFunction()) {
-        return false;
+        return Undefined();
       }
-    
+
       Handle<Function> ken_receive = Handle<Function>::Cast(function);
       Handle<Value> ken_receive_args[2];
-      ken_receive_args[0] = String::New(sender);
-      ken_receive_args[1] = JSONStringify(String::New(message, length));
+      ken_receive_args[0] = sender;
+      ken_receive_args[1] = JSONStringify(message);
 
-      ken_receive->Call(global, 2, ken_receive_args);
-      return true;
+      return ken_receive->Call(global, 2, ken_receive_args);
     }
-    
+
     Handle<String> ReadFile(const char* name) {
       FILE* file = fopen(name, "rb");
       if (file == NULL) {
@@ -150,56 +117,63 @@ namespace v8 {
         i += read;
       }
       fclose(file);
-      
+
       Handle<String> result = String::New(chars, size);
       delete[] chars;
       return result;
     }
 
     Handle<Value> Print(const Arguments& args) {
-      HandleScope handleScope;
+      HandleScope handle_scope;
+
       for (int index = 0; index < args.Length(); index++) {
-        if (index != 0)
+        if (index != 0) {
           print(" ");
+        }
 
         String::Utf8Value string(args[index]);
         print(ToCString(string));
         print("\n");
       }
+
       return Undefined();
     }
 
     Handle<Value> Send(const Arguments& args) {
       HandleScope handle_scope;
-      Handle<String> stringified = JSONStringify(args[0]);
 
-      String::Utf8Value kenid_string(args[0]);
-      const char* kenid = ToCString(kenid_string);
+      Handle<Value> kenid_val = args[0];
+      if (!kenid_val->IsString()) {
+        return ThrowException(String::New("Expected a string as first argument!"));
+      }
 
-      String::Utf8Value stringified_string(stringified);
-      const char* message = ToCString(stringified_string);
+      Handle<Value> message_val = JSONStringify(args[1]);
+      if (!message_val->IsString()) {
+        return ThrowException(String::New("Expected an object that can be stringified as second argument!"));
+      }
+
+      Handle<String> kenid_str = Handle<String>::Cast(kenid_val);
+      Handle<String> message_str = Handle<String>::Cast(message_val);
+
+      const char* kenid = ToCString(kenid_str);
+      const char* message = ToCString(message_str);
 
       // Call the primitive ken_send
       seqno_t seqno = ken_send(ken_id_from_string(kenid), message, strlen(message));
 
       return Integer::New(seqno);
     }
-    
+
     Handle<Value> Read(const Arguments& args) {
       Handle<String> name = Handle<String>::Cast(args[0]);
-      String::Utf8Value utf8(name);
-      return ReadFile(ToCString(utf8));
+      return ReadFile(ToCString(name));
     }
-    
+
     Handle<Value> Load(const Arguments& args) {
       Handle<String> name = Handle<String>::Cast(args[0]);
-      
-      String::Utf8Value utf8(name);
-      Handle<String> source = ReadFile(ToCString(utf8));
-      
-      Eval(source);
-      
-      return Undefined();
+      Handle<String> source = ReadFile(ToCString(name));
+
+      return Eval(source);
     }
   }
 }
