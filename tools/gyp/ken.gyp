@@ -24,6 +24,7 @@
         '../../deps/ken/kenext.c',
         '../../deps/ken/kenpat.c',
         '../../deps/ken/kenvar.c',
+        '../../deps/ken/kenhttp.c',
       ],
     },
   ]

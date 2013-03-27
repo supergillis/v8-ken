@@ -108,6 +108,7 @@ static void i_ken_sendto(kenid_t recip, void * buf, size_t len) {
 static void i_ken_send_ack(kenid_t recip, seqno_t ack) {
   ken_msg_hdr_t hdr;
   KENASRT(   0 != ken_id_cmp(recip, kenid_NULL)
+          && 0 != ken_id_cmp(recip, kenid_http)
           && 0 != ken_id_cmp(recip, kenid_stdin)
           && 0 != ken_id_cmp(recip, kenid_stdout)
           && 0 != ken_id_cmp(recip, kenid_alarm));
@@ -186,6 +187,7 @@ static void i_ken_send_messages(struct turn * t) {
       char msgbuf[65536];
       ken_msg_hdr_t * hdr = (ken_msg_hdr_t *)msgbuf;
       KENASRT(   0 != ken_id_cmp(kenid_NULL,  mr->recip)
+              && 0 != ken_id_cmp(kenid_http,  mr->recip)
               && 0 != ken_id_cmp(kenid_alarm, mr->recip)
               && 0 != ken_id_cmp(kenid_stdin, mr->recip));
       KENASRT(sizeof *hdr + mr->len <= sizeof msgbuf);
@@ -592,6 +594,7 @@ void i_ken_externalizer(int pipefd, int gopipefd, int commsock) {
         i_ken_fsync_file(eot_filename);
         i_ken_fsync_file(".");
         if (   0 != ken_id_cmp(eot_not.id, kenid_NULL)
+            && 0 != ken_id_cmp(eot_not.id, kenid_http)
             && 0 != ken_id_cmp(eot_not.id, kenid_stdin)
             && 0 != ken_id_cmp(eot_not.id, kenid_alarm))
           i_ken_send_ack(eot_not.id, eot_not.seqno);

@@ -112,6 +112,7 @@ extern kenid_t ken_id(void);
 /* Special Ken IDs. */
 extern const kenid_t
 kenid_NULL,     /* not a valid Ken ID */
+kenid_http,     /* sender of inputs from http socket */
 kenid_stdin,    /* sender of inputs from stdin */
 kenid_stdout,   /* for ken_send() to stdout */
 kenid_alarm;    /* sender of alarms from self */

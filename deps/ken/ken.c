@@ -35,6 +35,7 @@
 
 #endif
 
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <glob.h>
@@ -63,6 +64,8 @@
 #include "kencom.h"
 #include "kenapp.h"
 #include "kenext.h"
+
+#include "kenhttp.h"
 
 /* for simplicity the size of this next struct is the basic unit
    of allocation in persistent heap */
@@ -292,15 +295,17 @@ kenid_t ken_id(void) { return e_my_id; }
 
 const kenid_t
   kenid_NULL   = { { 0, 0, 0, 0 }, 0 },
-  kenid_stdin  = { { 0, 0, 0, 0 }, 1 },
-  kenid_stdout = { { 0, 0, 0, 0 }, 2 },
-  kenid_alarm  = { { 0, 0, 0, 0 }, 3 };
+  kenid_http   = { { 0, 0, 0, 0 }, 1 },
+  kenid_stdin  = { { 0, 0, 0, 0 }, 2 },
+  kenid_stdout = { { 0, 0, 0, 0 }, 3 },
+  kenid_alarm  = { { 0, 0, 0, 0 }, 4 };
 
 kenid_t ken_id_from_string(const char * id) {
   int ip[4], port, r;
   kenid_t kid;
   APPERR(KEN_ID_BUF_SIZE > strlen(id) && 8 < strlen(id));
   if (0 == strcmp(id, "NULL"))   return kenid_NULL;
+  if (0 == strcmp(id, "http"))   return kenid_http;
   if (0 == strcmp(id, "stdin"))  return kenid_stdin;
   if (0 == strcmp(id, "stdout")) return kenid_stdout;
   if (0 == strcmp(id, "alarm"))  return kenid_alarm;
@@ -317,6 +322,7 @@ kenid_t ken_id_from_string(const char * id) {
   kid.ip[3] = ip[3];
   kid.port  = htons(port);
   APPERR( ! (   0 == ken_id_cmp(kid, kenid_NULL)
+             || 0 == ken_id_cmp(kid, kenid_http)
              || 0 == ken_id_cmp(kid, kenid_stdin)
              || 0 == ken_id_cmp(kid, kenid_stdout)
              || 0 == ken_id_cmp(kid, kenid_alarm) ) );
@@ -327,6 +333,7 @@ void ken_id_to_string(kenid_t id, char *buf, int32_t len) {
   int r;
   APPERR(KEN_ID_BUF_SIZE <= len);
   if (0 == ken_id_cmp(id, kenid_NULL))   { sprintf(buf, "NULL");   return; }
+  if (0 == ken_id_cmp(id, kenid_http))   { sprintf(buf, "http");   return; }
   if (0 == ken_id_cmp(id, kenid_stdin))  { sprintf(buf, "stdin");  return; }
   if (0 == ken_id_cmp(id, kenid_stdout)) { sprintf(buf, "stdout"); return; }
   if (0 == ken_id_cmp(id, kenid_alarm))  { sprintf(buf, "alarm");  return; }
@@ -376,6 +383,7 @@ void ken_bcst(ken_bcst_t * dests, int32_t ndests,
     int32_t pidx;
     kenid_t dest = dests[i].id;
     APPERR(   0 != ken_id_cmp(dest, kenid_NULL)
+           && 0 != ken_id_cmp(dest, kenid_http)
            && 0 != ken_id_cmp(dest, kenid_stdin)
            && 0 != ken_id_cmp(dest, kenid_alarm));
     if (0 < i)
@@ -689,6 +697,7 @@ static void * i_ken_recover(void) {
   }
 }
 
+#if 0
 /* comparison function for sorting array of dirty page IDs */
 static int int32cmp(const void *a, const void *b) {
   int32_t A = *(const int32_t *)a, B = *(const int32_t *)b;
@@ -696,10 +705,11 @@ static int int32cmp(const void *a, const void *b) {
           && 0 <= B && (int32_t)BLOB_PAGES > B);
   return A - B;
 }
+#endif
 
 /* Read into buffer the next message or input that begins a new
    Ken turn.  Deal with out-of-order messages and incoming acks. */
-static void i_ken_next_input(int commsock, char **bufpp, int32_t * msglen,
+static void i_ken_next_input(int httpsock, int commsock, char **bufpp, int32_t * msglen,
                              kenid_t * sender, seqno_t * seqno, int wr_pipe,
                              int64_t alarmtime) {
   static char inbuf[65536];
@@ -711,7 +721,9 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
      return; } while (0)
 
   for (;;) {
-    const int maxfd_1 = 1 + (STDIN_FILENO > commsock ? STDIN_FILENO : commsock);
+    const int maxfd = (httpsock > commsock) ?
+      ((STDIN_FILENO > httpsock) ? STDIN_FILENO : httpsock) :
+      ((STDIN_FILENO > commsock) ? STDIN_FILENO : commsock);
     static int stdin_open = 1;
     fd_set readset;
     int r;
@@ -721,6 +733,7 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
     FD_ZERO(&readset);
     if (0 != stdin_open)
       FD_SET(STDIN_FILENO, &readset);
+    FD_SET(httpsock, &readset);
     FD_SET(commsock, &readset);
     if (-1 == alarmtime)                          /* don't set alarm */
       tvp = NULL;
@@ -735,7 +748,7 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
     }
     /* note that select() sometimes returns early,
        i.e., before the timer fully expires */
-    r = select(maxfd_1, &readset, NULL, NULL, tvp);
+    r = select(maxfd + 1, &readset, NULL, NULL, tvp);
     NTF(0 <= r);
     if (0 == r)                                   /* timeout */
       NEXT_INPUT_RETURN(NULL, 0, kenid_alarm, 0);
@@ -749,7 +762,28 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
       else
         NEXT_INPUT_RETURN(&inbuf[0], (int32_t)bytes, kenid_stdin, 0);
     }
-    else {                                        /* socket ready */
+    else if (FD_ISSET(httpsock, &readset)) {      /* http socket ready */
+      static http_request_t* request = NULL;
+
+      if (request == NULL) {
+        request = malloc(sizeof(http_request_t));
+        request->socket = -1;
+      }
+
+      /* Close the previous connection if any */
+      ken_http_close(request);
+
+      request->socket = accept(httpsock, NULL, NULL);
+      KENASRT(0 <= request->socket);
+
+      /*  Parse the request */
+      bytes = recv(request->socket, inbuf, sizeof inbuf, 0);
+      KENASRT(0 <= bytes);
+
+      if (ken_http_parse(request, inbuf, (size_t) bytes))
+        NEXT_INPUT_RETURN((char*) request, sizeof(*request), kenid_http, 0);
+    }
+    else {                                        /* communication socket ready */
       ken_msg_hdr_t * hdr;
       struct sockaddr_in addr;
       socklen_t addrlen = sizeof addr;
@@ -829,7 +863,7 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
 #define GO_WR_PIPE (gopipefds[1])
 
 int main(int argc, char *argv[]) {
-  int r, commsock, pipefds[2], gopipefds[2];
+  int r, httpsock, commsock, pipefds[2], gopipefds[2];
   long rl;
   pid_t cpid;
   struct sockaddr_in sa;
@@ -848,6 +882,7 @@ int main(int argc, char *argv[]) {
   APPERR(1 < argc);
   e_my_id = ken_id_from_string(argv[1]);
   APPERR(   0 != ken_id_cmp(e_my_id, kenid_NULL)
+         && 0 != ken_id_cmp(e_my_id, kenid_http)
          && 0 != ken_id_cmp(e_my_id, kenid_stdin)
          && 0 != ken_id_cmp(e_my_id, kenid_stdout)
          && 0 != ken_id_cmp(e_my_id, kenid_alarm));
@@ -871,6 +906,19 @@ int main(int argc, char *argv[]) {
      be prudent to use getsockopt() to check whether the setsockopt()
      succeeded.  Note that the set operation has tricky semantics
      involving doubling by the kernel; see "man 7 socket". */
+
+  const char* addr = "127.0.0.1";
+  uint16_t port = 8000;
+
+  /* set up http socket */
+  (void)memset(&sa, 0, sizeof sa);
+  httpsock = socket(AF_INET, SOCK_STREAM, 0);   NTF(-1 != httpsock);
+  r = inet_pton(AF_INET, addr, &sa.sin_addr);   NTF(0 < r);
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons(port);
+  r = bind(httpsock, (struct sockaddr *)&sa,
+           sizeof sa);                          NTF(0 == r);
+  r = listen(httpsock, 8);                      NTF(0 == r);
 
   /* set up communication socket */
   (void)memset(&sa, 0, sizeof sa);
@@ -1034,7 +1082,7 @@ int main(int argc, char *argv[]) {
       else if (0 == e_state_blob->alarmtime)
         sender = kenid_alarm;
       else
-        i_ken_next_input(commsock, &bufptr, &msglen, &sender, &seqno,
+        i_ken_next_input(httpsock, commsock, &bufptr, &msglen, &sender, &seqno,
                          WR_PIPE, e_state_blob->alarmtime);
       /* could prepend sender & seqno to EOT file here; now they're known */
       e_state_blob->alarmtime = ken_handler(bufptr, msglen, sender);

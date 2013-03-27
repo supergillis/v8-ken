@@ -100,6 +100,24 @@ namespace v8 {
       return ken_receive->Call(global, 2, ken_receive_args);
     }
 
+    Handle<Value> HandleHttpRequest(Handle<String> method, Handle<String> uri) {
+      HandleScope handle_scope;
+
+      Handle<Object> global = Context::GetCurrent()->Global();
+      Handle<Value> function = global->Get(String::New("handleRequest"));
+
+      if (!function->IsFunction()) {
+        return Undefined();
+      }
+
+      Handle<Function> handle_request = Handle<Function>::Cast(function);
+      Handle<Value> handle_request_args[2];
+      handle_request_args[0] = method;
+      handle_request_args[1] = uri;
+
+      return handle_request->Call(global, 2, handle_request_args);
+    }
+
     Handle<String> ReadFile(const char* name) {
       FILE* file = fopen(name, "rb");
       if (file == NULL) {

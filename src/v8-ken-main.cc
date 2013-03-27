@@ -3,6 +3,10 @@
 #include "v8-ken-data.h"
 #include "v8-ken-v8.h"
 
+extern "C" {
+#include "kenhttp.h"
+}
+
 #include "platform.h"
 
 /***
@@ -58,6 +62,17 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t ken_sender) {
   }
   else if (0 == ken_id_cmp(ken_sender, kenid_alarm)) {
     // Do nothing on alarm
+  }
+  else if (0 == ken_id_cmp(ken_sender, kenid_http)) {
+    http_request_t* request = (http_request_t*) msg;
+
+    v8::HandleScope handle_scope;
+    v8::Handle<v8::String> method = v8::String::New(request->method);
+    v8::Handle<v8::String> uri = v8::String::New(request->uri);
+
+    v8::ken::HandleHttpRequest(method, uri);
+
+    ken_http_close(request);
   }
   else {
     // Incoming message
