@@ -14,6 +14,7 @@ namespace v8 {
     void Initialize(Handle<Object> object) {
       object->Set(String::New("print"), FunctionTemplate::New(Print)->GetFunction());
       object->Set(String::New("send"), FunctionTemplate::New(Send)->GetFunction());
+
       object->Set(String::New("read"), FunctionTemplate::New(Read)->GetFunction());
       object->Set(String::New("load"), FunctionTemplate::New(Load)->GetFunction());
     }
@@ -183,15 +184,28 @@ namespace v8 {
     }
 
     Handle<Value> Read(const Arguments& args) {
-      Handle<String> name = Handle<String>::Cast(args[0]);
-      return ReadFile(ToCString(name));
+      String::Utf8Value file(args[0]);
+      if (*file == NULL) {
+        return ThrowException(String::New("Error loading file"));
+      }
+
+      Handle<String> source = ReadFile(*file);
+      if (source.IsEmpty()) {
+        return ThrowException(String::New("Error loading file"));
+      }
+
+      return source;
     }
 
     Handle<Value> Load(const Arguments& args) {
-      Handle<String> name = Handle<String>::Cast(args[0]);
-      Handle<String> source = ReadFile(ToCString(name));
+      TryCatch try_catch;
+      Handle<Value> source = Read(args);
 
-      return Eval(source);
+      if (try_catch.HasCaught()) {
+        return try_catch.ReThrow();
+      }
+
+      return Eval(source->ToString());
     }
   }
 }
