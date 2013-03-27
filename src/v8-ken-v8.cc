@@ -100,7 +100,7 @@ namespace v8 {
       return ken_receive->Call(global, 2, ken_receive_args);
     }
 
-    Handle<Value> HandleHttpRequest(Handle<String> method, Handle<String> uri) {
+    Handle<Value> HandleHttpRequest(Handle<Object> request, Handle<Object> response) {
       HandleScope handle_scope;
 
       Handle<Object> global = Context::GetCurrent()->Global();
@@ -112,8 +112,8 @@ namespace v8 {
 
       Handle<Function> handle_request = Handle<Function>::Cast(function);
       Handle<Value> handle_request_args[2];
-      handle_request_args[0] = method;
-      handle_request_args[1] = uri;
+      handle_request_args[0] = request;
+      handle_request_args[1] = response;
 
       return handle_request->Call(global, 2, handle_request_args);
     }

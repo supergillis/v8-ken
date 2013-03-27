@@ -17,7 +17,7 @@ namespace v8 {
     Handle<Value> Eval(Handle<String> source);
 
     Handle<Value> HandleReceive(Handle<String> sender, Handle<String> message);
-    Handle<Value> HandleHttpRequest(Handle<String> method, Handle<String> uri);
+    Handle<Value> HandleHttpRequest(Handle<Object> request, Handle<Object> response);
 
     void ReportException(TryCatch* tryCatch);
   }

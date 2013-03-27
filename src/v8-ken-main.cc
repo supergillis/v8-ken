@@ -1,13 +1,8 @@
 #include "v8.h"
 #include "v8-ken.h"
+#include "v8-ken-http.h"
 #include "v8-ken-data.h"
 #include "v8-ken-v8.h"
-
-extern "C" {
-#include "kenhttp.h"
-}
-
-#include "platform.h"
 
 /***
  * V8 ken shell main loop
@@ -64,13 +59,31 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t ken_sender) {
     // Do nothing on alarm
   }
   else if (0 == ken_id_cmp(ken_sender, kenid_http)) {
-    http_request_t* request = (http_request_t*) msg;
+    static ken_http_response_t response;
+
+    ken_http_request_t* request = (ken_http_request_t*) msg;
+    bool success = false;
 
     v8::HandleScope handle_scope;
-    v8::Handle<v8::String> method = v8::String::New(request->method);
-    v8::Handle<v8::String> uri = v8::String::New(request->uri);
+    v8::Handle<v8::Object> request_object = v8::Object::New();
+    v8::Handle<v8::Object> response_object = v8::Object::New();
 
-    v8::ken::HandleHttpRequest(method, uri);
+    if (v8::ken::http::RequestToObject(request, request_object)) {
+      v8::ken::HandleHttpRequest(request_object, response_object);
+
+      if (v8::ken::http::ObjectToResponse(response_object, &response)) {
+        success = true;
+        ken_http_send(request, &response);
+      }
+    }
+
+    if (!success) {
+      response.statusCode = 404;
+      strcpy(response.status, "Not Found");
+      strcpy(response.data, "This page was not found.");
+
+      ken_http_send(request, &response);
+    }
 
     ken_http_close(request);
   }

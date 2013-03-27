@@ -763,10 +763,10 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
         NEXT_INPUT_RETURN(&inbuf[0], (int32_t)bytes, kenid_stdin, 0);
     }
     else if (FD_ISSET(httpsock, &readset)) {      /* http socket ready */
-      static http_request_t* request = NULL;
+      static ken_http_request_t* request = NULL;
 
       if (request == NULL) {
-        request = malloc(sizeof(http_request_t));
+        request = malloc(sizeof(ken_http_request_t));
         request->socket = -1;
       }
 
