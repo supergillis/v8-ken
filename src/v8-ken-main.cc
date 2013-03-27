@@ -11,23 +11,22 @@
 int64_t ken_handler(void* msg, int32_t len, kenid_t ken_sender) {
   static v8::ken::Data* data = v8::ken::Data::instance();
 
-  if (0 == ken_id_cmp(ken_sender, kenid_NULL) && data == NULL) {
-    data = v8::ken::Data::initialize();
+  if (0 == ken_id_cmp(ken_sender, kenid_NULL)) {
+    if (data == NULL) {
+      data = v8::ken::Data::initialize();
 
-    // Prepare REPL
-    v8::ken::print("Initialized session\n");
-    v8::ken::print("> ");
-  }
-  else if (data->pid() != getpid()) {
-    // Update process id, restore V8, restore statics, ...
-    data->restore();
+      // Prepare REPL
+      v8::ken::print("Initialized session\n");
+      v8::ken::print("> ");
+    }
+    else {
+      // Update process id, restore V8, restore statics, ...
+      data->restore();
 
-    // Prepare REPL
-    v8::ken::print("Restored session\n");
-    v8::ken::print("> ");
-
-    // Continue normal behaviour
-    return ken_handler(msg, len, ken_sender);
+      // Prepare REPL
+      v8::ken::print("Restored session\n");
+      v8::ken::print("> ");
+    }
   }
   else if (0 == ken_id_cmp(ken_sender, kenid_stdin)) {
     v8::HandleScope handle_scope;

@@ -863,7 +863,7 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
 #define GO_WR_PIPE (gopipefds[1])
 
 int main(int argc, char *argv[]) {
-  int r, httpsock, commsock, pipefds[2], gopipefds[2];
+  int r, httpsock, commsock, pipefds[2], gopipefds[2], recovered;
   long rl;
   pid_t cpid;
   struct sockaddr_in sa;
@@ -1029,12 +1029,16 @@ int main(int argc, char *argv[]) {
       e_state_blob->freelist       = &(e_state_blob->heap[0]);
       KENASRT(VALID_ALLOC_ALIGNMENT(e_state_blob->freelist));
       KENASRT(VALID_CHUNKSIZE(e_state_blob->freelist->nbytes));
+
+      recovered = 0;
     }
     else {
       APPERR(0 == ken_id_cmp(e_state_blob->self, e_my_id));
       KENASRT(e_state_blob->mapaddr == e_state_blob);
       KENASRT(0 <= e_state_blob->turn);
       FP2("recovering from turn %" PRId64 "\n", e_state_blob->turn);
+
+      recovered = 1;
     }
 
     ken_heap_ready = 1;
@@ -1085,6 +1089,8 @@ int main(int argc, char *argv[]) {
       msglen = 0;
       if (0 == e_state_blob->turn)
         sender = kenid_NULL;
+      else if (1 == recovered)
+        recovered = 0, sender = kenid_NULL;
       else if (0 == e_state_blob->alarmtime)
         sender = kenid_alarm;
       else
