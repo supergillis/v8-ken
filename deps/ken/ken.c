@@ -913,6 +913,12 @@ int main(int argc, char *argv[]) {
   /* set up http socket */
   (void)memset(&sa, 0, sizeof sa);
   httpsock = socket(AF_INET, SOCK_STREAM, 0);   NTF(-1 != httpsock);
+
+  /* reuse socket in TIME_WAIT state */
+  r = 1;
+  r = setsockopt(httpsock, SOL_SOCKET, SO_REUSEADDR,
+           (const char *)&r, sizeof(r));        NTF(0 == r);
+
   r = inet_pton(AF_INET, addr, &sa.sin_addr);   NTF(0 < r);
   sa.sin_family = AF_INET;
   sa.sin_port = htons(port);
