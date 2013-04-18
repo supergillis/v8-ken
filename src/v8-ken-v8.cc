@@ -10,6 +10,7 @@ namespace v8 {
     Handle<Value> Send(const Arguments& args);
     Handle<Value> Read(const Arguments& args);
     Handle<Value> Load(const Arguments& args);
+    Handle<Value> Eval(const Arguments& args);
 
     void Initialize(Handle<Object> object) {
       object->Set(String::New("print"), FunctionTemplate::New(Print)->GetFunction());
@@ -17,6 +18,7 @@ namespace v8 {
 
       object->Set(String::New("read"), FunctionTemplate::New(Read)->GetFunction());
       object->Set(String::New("load"), FunctionTemplate::New(Load)->GetFunction());
+      object->Set(String::New("eval"), FunctionTemplate::New(Eval)->GetFunction());
     }
 
     const char* ToCString(Handle<String> value) {
@@ -77,10 +79,47 @@ namespace v8 {
       return result;
     }
 
-    void ReportException(TryCatch* try_catch) {
-      String::Utf8Value utf8(try_catch->Exception());
-      print(ToCString(utf8));
-      print("\n");
+    void ReportException(v8::TryCatch* try_catch) {
+      char buffer[2048];
+
+      HandleScope handle_scope;
+      String::Utf8Value exception(try_catch->Exception());
+      const char* exception_string = ToCString(exception);
+      Handle<v8::Message> message = try_catch->Message();
+      if (message.IsEmpty()) {
+        // V8 didn't provide any extra information about this error; just
+        // print the exception.
+        snprintf(buffer, 2048, "%s\n", exception_string);
+        print(buffer);
+      } else {
+        // Print (filename):(line number): (message).
+        String::Utf8Value filename(message->GetScriptResourceName());
+        const char* filename_string = ToCString(filename);
+        int linenum = message->GetLineNumber();
+        snprintf(buffer, 2048, "%s:%i: %s\n", filename_string, linenum, exception_string);
+        print(buffer);
+        // Print line of source code.
+        String::Utf8Value sourceline(message->GetSourceLine());
+        const char* sourceline_string = ToCString(sourceline);
+        snprintf(buffer, 2048, "%s\n", sourceline_string);
+        print(buffer);
+        // Print wavy underline (GetUnderline is deprecated).
+        int start = message->GetStartColumn();
+        for (int i = 0; i < start; i++) {
+          print(" ");
+        }
+        int end = message->GetEndColumn();
+        for (int i = start; i < end; i++) {
+          print("^");
+        }
+        print("\n");
+        String::Utf8Value stack_trace(try_catch->StackTrace());
+        if (stack_trace.length() > 0) {
+          const char* stack_trace_string = ToCString(stack_trace);
+          snprintf(buffer, 2048, "%s\n", stack_trace_string);
+          print(buffer);
+        }
+      }
     }
 
     Handle<Value> HandleReceive(Handle<String> sender, Handle<String> message) {
@@ -184,28 +223,34 @@ namespace v8 {
     }
 
     Handle<Value> Read(const Arguments& args) {
-      String::Utf8Value file(args[0]);
-      if (*file == NULL) {
-        return ThrowException(String::New("Error loading file"));
+      if (args.Length() != 1 || !args[0]->IsString()) {
+        return ThrowException(String::New("Read expects a string as first parameter!"));
       }
 
-      Handle<String> source = ReadFile(*file);
+      Handle<String> file = args[0]->ToString();
+      Handle<String> source = ReadFile(*String::Utf8Value(file));
       if (source.IsEmpty()) {
-        return ThrowException(String::New("Error loading file"));
+        return ThrowException(String::Concat(String::New("Error reading file: "), file));
       }
 
       return source;
     }
 
     Handle<Value> Load(const Arguments& args) {
-      TryCatch try_catch;
-      Handle<Value> source = Read(args);
-
-      if (try_catch.HasCaught()) {
-        return try_catch.ReThrow();
+      Handle<Value> value = Read(args);
+      if (!value->IsString()) {
+        return value;
       }
 
-      return Eval(source->ToString());
+      return Eval(value->ToString());
+    }
+
+    Handle<Value> Eval(const Arguments& args) {
+      if (args.Length() != 1 || !args[0]->IsString()) {
+        return ThrowException(String::New("Eval expects a string as first parameter!"));
+      }
+
+      return Eval(args[0]->ToString());
     }
   }
 }
