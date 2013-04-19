@@ -7,6 +7,7 @@ namespace v8 {
       bool RequestToObject(ken_http_request_t* request, Handle<Object> object) {
         object->Set(String::New("method"), String::New(request->method));
         object->Set(String::New("uri"), String::New(request->uri));
+        object->Set(String::New("data"), String::New(request->data));
 
         return true;
       }

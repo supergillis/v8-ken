@@ -3,6 +3,9 @@
 
 #include <stddef.h>  /* for size_t */
 
+#define REQUEST_MAX_SIZE 10*1024*1024
+#define RESPONSE_MAX_SIZE 10*1024*1024
+
 typedef struct {
   char name[128];
   char value[512];
@@ -15,7 +18,7 @@ typedef struct {
   char uri[2048];
   ken_http_request_header_t headers[128];
 
-  char data[2048];
+  char data[REQUEST_MAX_SIZE];
 } ken_http_request_t;
 
 typedef struct {
@@ -23,7 +26,7 @@ typedef struct {
   char status[256];
   ken_http_request_header_t headers[128];
 
-  char data[2048];
+  char data[RESPONSE_MAX_SIZE];
 } ken_http_response_t;
 
 extern int ken_http_parse(ken_http_request_t* request, char* buffer, size_t length);

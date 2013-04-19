@@ -49,7 +49,7 @@ size_t line_length(char* s) {
   if (temp == NULL)
     return 0;
 
-  assert(temp > s);
+  assert(temp >= s);
 
   /* Return length plus length of CRLF */
   return (temp - s) + 2;
@@ -115,11 +115,27 @@ int ken_http_parse(ken_http_request_t* request, char* buffer, size_t length) {
   request->uri[uri_len] = '\0';
 
   // Go to next line
-  /*line += line_length;
+  line += line_len;
 
+  // Skip headers
   line_len = line_length(line);
-  if (line_len == 0)
-    return 0;*/
+  while (line_len > 2) {
+    // TODO parse header
+    //fprintf(stderr, "%.*s", line_len, line);
+
+    // Go to next line
+    line += line_len;
+    line_len = line_length(line);
+  }
+
+  // Skip CRLF after headers
+  assert(line_len == 2);
+  line += 2;
+
+  // Read request data
+  int data_len = (buffer + length) - line;
+  memcpy(request->data, line, data_len);
+  request->data[data_len] = '\0';
 
   return 1;
 }
@@ -140,7 +156,7 @@ int ken_http_compose(ken_http_response_t* response, char* buffer, size_t length)
 }
 
 void ken_http_send(ken_http_request_t* request, ken_http_response_t* response) {
-  static char buffer[65536];
+  static char buffer[RESPONSE_MAX_SIZE];
 
   if (ken_http_compose(response, buffer, sizeof buffer)) {
     ssize_t len = send(request->socket, buffer, strlen(buffer), 0);

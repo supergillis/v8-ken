@@ -67,6 +67,8 @@
 
 #include "kenhttp.h"
 
+#define KEN_HEAP_SIZE 5*1024*1024*1024
+
 /* for simplicity the size of this next struct is the basic unit
    of allocation in persistent heap */
 typedef struct ken_mem_chunk_hdr {
@@ -712,7 +714,7 @@ static int int32cmp(const void *a, const void *b) {
 static void i_ken_next_input(int httpsock, int commsock, char **bufpp, int32_t * msglen,
                              kenid_t * sender, seqno_t * seqno, int wr_pipe,
                              int64_t alarmtime) {
-  static char inbuf[65536];
+  static char inbuf[10*1024*1024];
   KENASRT(NULL != bufpp && NULL != msglen && NULL != sender
           && NULL != seqno && -2 < alarmtime && 0 != alarmtime);
 

@@ -45,7 +45,6 @@
 
 /* Limits & constants. */
 enum {
-  KEN_HEAP_SIZE = 1024*1024*1024,
   /* Max length of body of message, based on Ken header size,
      IPv4 hdr <= 60 bytes, UDP hdr == 8 bytes, 2^16-1 == 65535. */
   KEN_MAX_MSG_BODY = 65439,
