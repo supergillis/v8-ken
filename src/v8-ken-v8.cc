@@ -2,6 +2,8 @@
 #include "v8-ken.h"
 #include "v8-ken-v8.h"
 
+#include <time.h>
+
 namespace v8 {
   namespace ken {
     Handle<String> ReadFile(const char* name);
@@ -11,6 +13,7 @@ namespace v8 {
     Handle<Value> Read(const Arguments& args);
     Handle<Value> Load(const Arguments& args);
     Handle<Value> Eval(const Arguments& args);
+    Handle<Value> HrTime(const Arguments& args);
 
     void Initialize(Handle<Object> object) {
       object->Set(String::New("print"), FunctionTemplate::New(Print)->GetFunction());
@@ -19,6 +22,8 @@ namespace v8 {
       object->Set(String::New("read"), FunctionTemplate::New(Read)->GetFunction());
       object->Set(String::New("load"), FunctionTemplate::New(Load)->GetFunction());
       object->Set(String::New("eval"), FunctionTemplate::New(Eval)->GetFunction());
+
+      object->Set(String::New("hrtime"), FunctionTemplate::New(HrTime)->GetFunction());
     }
 
     const char* ToCString(Handle<String> value) {
@@ -55,17 +60,16 @@ namespace v8 {
       return JSON_parse->Call(global, 1, args);
     }
 
-    Handle<Value> Eval(const char* source, int32_t length) {
+    Handle<Value> Eval(const char* file, const char* source, int32_t length) {
       HandleScope handle_scope;
+      Handle<String> file_string = String::New(file);
       Handle<String> source_string = String::New(source, length);
-      return Eval(source_string);
+      return Eval(file_string, source_string);
     }
 
-    Handle<Value> Eval(Handle<String> source) {
+    Handle<Value> Eval(Handle<String> file, Handle<String> source) {
       HandleScope handle_scope;
-
-      Handle<String> name = String::New("(shell)");
-      Handle<Script> script = Script::Compile(source, name);
+      Handle<Script> script = Script::Compile(source, file);
 
       if (script.IsEmpty()) {
         return Undefined();
@@ -185,14 +189,11 @@ namespace v8 {
       HandleScope handle_scope;
 
       for (int index = 0; index < args.Length(); index++) {
-        if (index != 0) {
-          print(" ");
-        }
-
         String::Utf8Value string(args[index]);
         print(ToCString(string));
-        print("\n");
       }
+
+      print("\n");
 
       return Undefined();
     }
@@ -237,12 +238,16 @@ namespace v8 {
     }
 
     Handle<Value> Load(const Arguments& args) {
+      if (args.Length() != 1 || !args[0]->IsString()) {
+        return ThrowException(String::New("Load expects a string as first parameter!"));
+      }
+
       Handle<Value> value = Read(args);
       if (!value->IsString()) {
         return value;
       }
 
-      return Eval(value->ToString());
+      return Eval(args[0]->ToString(), value->ToString());
     }
 
     Handle<Value> Eval(const Arguments& args) {
@@ -250,7 +255,49 @@ namespace v8 {
         return ThrowException(String::New("Eval expects a string as first parameter!"));
       }
 
-      return Eval(args[0]->ToString());
+      return Eval(String::New("eval"), args[0]->ToString());
+    }
+
+    Handle<Value> HrTime(const Arguments& args) {
+      struct timespec ts;
+      clock_gettime(CLOCK_MONOTONIC, &ts);
+
+      if (args.Length() == 0) {
+        Handle<Array> result = Array::New(2);
+        result->Set(0, Integer::New(ts.tv_sec));
+        result->Set(1, Integer::New(ts.tv_nsec));
+        return result;
+      }
+
+      if (args.Length() != 1 || !args[0]->IsArray()) {
+        return ThrowException(String::New("HrTime expects no parameters, or time as first argument!"));
+      }
+
+      Handle<Array> start = Handle<Array>::Cast(args[0]);
+      if (!start->Get(0)->IsNumber() || !start->Get(1)->IsNumber()) {
+        return ThrowException(String::New("HrTime expects no parameters, or time as first argument!"));
+      }
+
+      int64_t elapsed_sec = ts.tv_sec - start->Get(0)->ToInteger()->IntegerValue();
+      int64_t elapsed_nsec = ts.tv_nsec - start->Get(1)->ToInteger()->IntegerValue();
+
+      if (elapsed_sec > 0) {
+        if (elapsed_nsec < 0) {
+          elapsed_nsec += 1e9;
+          elapsed_sec -= 1;
+        }
+      }
+      else if (elapsed_sec < 0) {
+        if (elapsed_nsec > 0) {
+          elapsed_nsec -= 1e9;
+          elapsed_sec += 1;
+        }
+      }
+
+      Handle<Array> result = Array::New(2);
+      result->Set(0, Integer::New(elapsed_sec));
+      result->Set(1, Integer::New(elapsed_nsec));
+      return result;
     }
   }
 }

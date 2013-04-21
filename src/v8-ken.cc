@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "kenerr.h"
 #include "v8-ken.h"
 
 /***
@@ -22,8 +23,11 @@ void* operator new[](size_t size) {
 }
 
 static void ken_delete(void* ptr) {
-  assert(0 != ken_heap_ready && NULL != ptr);
-  ken_free(ptr);
+  assert(0 != ken_heap_ready);
+  if (ptr == NULL)
+    FP1("trying to delete NULL pointer\n");
+  else
+    ken_free(ptr);
 }
 
 void operator delete(void* ptr) {

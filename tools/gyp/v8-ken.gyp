@@ -4,6 +4,9 @@
     {
       'target_name': 'v8_ken_shell',
       'type': 'executable',
+      'libraries': [
+        '-lrt',
+      ],
       'dependencies': [
         'v8.gyp:v8',
       ],

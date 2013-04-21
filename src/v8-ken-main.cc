@@ -33,7 +33,7 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t ken_sender) {
     v8::TryCatch try_catch;
 
     // Execute javascript string
-    v8::Handle<v8::Value> result = v8::ken::Eval((const char*) msg, len);
+    v8::Handle<v8::Value> result = v8::ken::Eval("shell", (const char*) msg, len);
 
     if (try_catch.HasCaught()) {
       v8::ken::ReportException(&try_catch);

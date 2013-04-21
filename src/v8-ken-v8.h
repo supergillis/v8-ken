@@ -13,8 +13,8 @@ namespace v8 {
     Handle<Value> JSONStringify(Handle<Value> object);
     Handle<Value> JSONParse(Handle<String> json);
 
-    Handle<Value> Eval(const char* source, int32_t length);
-    Handle<Value> Eval(Handle<String> source);
+    Handle<Value> Eval(const char* file, const char* source, int32_t length);
+    Handle<Value> Eval(Handle<String> file, Handle<String> source);
 
     Handle<Value> HandleReceive(Handle<String> sender, Handle<String> message);
     Handle<Value> HandleHttpRequest(Handle<Object> request, Handle<Object> response);
