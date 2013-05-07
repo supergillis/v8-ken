@@ -214,9 +214,6 @@ namespace v8 {
       String::Utf8Value kenid(kenid_val->ToString());
       String::Utf8Value message(message_val->ToString());
 
-      fprintf(stderr, "kenid: %s\n", *kenid);
-      fprintf(stderr, "message: %s\n", *message);
-
       // Call the primitive ken_send
       seqno_t seqno = ken_send(ken_id_from_string(*kenid), *message, strlen(*message));
 
