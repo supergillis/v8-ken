@@ -723,9 +723,11 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
      return; } while (0)
 
   for (;;) {
-    const int maxfd = (httpsock > commsock) ?
-      ((STDIN_FILENO > httpsock) ? STDIN_FILENO : httpsock) :
-      ((STDIN_FILENO > commsock) ? STDIN_FILENO : commsock);
+    const int maxfd = (-1 == httpsock) ?
+      ((STDIN_FILENO > commsock) ? STDIN_FILENO : commsock) :
+      (httpsock > commsock) ?
+        ((STDIN_FILENO > httpsock) ? STDIN_FILENO : httpsock) :
+        ((STDIN_FILENO > commsock) ? STDIN_FILENO : commsock);
     static int stdin_open = 1;
     fd_set readset;
     int r;
@@ -735,7 +737,8 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
     FD_ZERO(&readset);
     if (0 != stdin_open)
       FD_SET(STDIN_FILENO, &readset);
-    FD_SET(httpsock, &readset);
+    if (-1 != httpsock)
+      FD_SET(httpsock, &readset);
     FD_SET(commsock, &readset);
     if (-1 == alarmtime)                          /* don't set alarm */
       tvp = NULL;
@@ -868,6 +871,7 @@ int main(int argc, char *argv[]) {
   int r, httpsock, commsock, pipefds[2], gopipefds[2], recovered;
   long rl;
   pid_t cpid;
+  kenid_t http_id;
   struct sockaddr_in sa;
   char idbuf[KEN_ID_BUF_SIZE];
   struct sigaction SIGSEGV_act;
@@ -909,24 +913,31 @@ int main(int argc, char *argv[]) {
      succeeded.  Note that the set operation has tricky semantics
      involving doubling by the kernel; see "man 7 socket". */
 
-  const char* addr = "127.0.0.1";
-  uint16_t port = 8000;
+  /* check if http address is defined */
+  if (argc >= 3 && sscanf(argv[2], "%d.%d.%d.%d:%d", &r, &r, &r, &r, &r) == 5) {
+    http_id = ken_id_from_string(argv[2]);
 
-  /* set up http socket */
-  (void)memset(&sa, 0, sizeof sa);
-  httpsock = socket(AF_INET, SOCK_STREAM, 0);   NTF(-1 != httpsock);
+    /* set up http socket */
+    (void)memset(&sa, 0, sizeof sa);
+    httpsock = socket(AF_INET, SOCK_STREAM, 0);   NTF(-1 != httpsock);
 
-  /* reuse socket in TIME_WAIT state */
-  r = 1;
-  r = setsockopt(httpsock, SOL_SOCKET, SO_REUSEADDR,
-           (const char *)&r, sizeof(r));        NTF(0 == r);
+    /* reuse socket in TIME_WAIT state */
+    r = 1;
+    r = setsockopt(httpsock, SOL_SOCKET, SO_REUSEADDR,
+             (const char *)&r, sizeof(r));        NTF(0 == r);
 
-  r = inet_pton(AF_INET, addr, &sa.sin_addr);   NTF(0 < r);
-  sa.sin_family = AF_INET;
-  sa.sin_port = htons(port);
-  r = bind(httpsock, (struct sockaddr *)&sa,
-           sizeof sa);                          NTF(0 == r);
-  r = listen(httpsock, 8);                      NTF(0 == r);
+    commsock = socket(AF_INET, SOCK_DGRAM, 0);    NTF(-1 != commsock);
+    strncpy(idbuf, argv[2], sizeof idbuf);        NTF('\0' == idbuf[sizeof idbuf - 1]);
+    *(strchr(idbuf, ':')) = '\0';
+    r = inet_pton(AF_INET, idbuf, &sa.sin_addr);  NTF(0 < r);
+    sa.sin_family = AF_INET;
+    sa.sin_port = http_id.port;
+    r = bind(httpsock, (struct sockaddr *)&sa,
+             sizeof sa);                          NTF(0 == r);
+    r = listen(httpsock, 8);                      NTF(0 == r);
+  }
+  else
+    httpsock = -1;
 
   /* set up communication socket */
   (void)memset(&sa, 0, sizeof sa);
