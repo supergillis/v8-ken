@@ -211,14 +211,14 @@ namespace v8 {
         return ThrowException(String::New("Expected an object that can be stringified as second argument!"));
       }
 
-      Handle<String> kenid_str = Handle<String>::Cast(kenid_val);
-      Handle<String> message_str = Handle<String>::Cast(message_val);
+      String::Utf8Value kenid(kenid_val->ToString());
+      String::Utf8Value message(message_val->ToString());
 
-      const char* kenid = ToCString(kenid_str);
-      const char* message = ToCString(message_str);
+      fprintf(stderr, "kenid: %s\n", *kenid);
+      fprintf(stderr, "message: %s\n", *message);
 
       // Call the primitive ken_send
-      seqno_t seqno = ken_send(ken_id_from_string(kenid), message, strlen(message));
+      seqno_t seqno = ken_send(ken_id_from_string(*kenid), *message, strlen(*message));
 
       return Integer::New(seqno);
     }
