@@ -20,6 +20,7 @@
         '../../src',
         '../../include',
         '../../deps/ken',
+        '../../deps/http-parser',
       ],
       'sources': [
         '../../src/v8-ken.cc',

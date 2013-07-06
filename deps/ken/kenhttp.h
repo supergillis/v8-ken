@@ -3,36 +3,40 @@
 
 #include <stddef.h>  /* for size_t */
 
-#define REQUEST_MAX_SIZE 10*1024*1024
-#define RESPONSE_MAX_SIZE 10*1024*1024
+typedef struct ken_http_header {
+  char* name;
+  char* value;
 
-typedef struct {
-  char name[128];
-  char value[512];
-} ken_http_request_header_t;
+  struct ken_http_header* next;
+} ken_http_header_t;
 
 typedef struct {
   int socket;
 
-  char method[256];
-  char uri[2048];
-  ken_http_request_header_t headers[128];
+  char* method;
+  char* uri;
+  char* body;
 
-  char data[REQUEST_MAX_SIZE];
+  ken_http_header_t* headers;
 } ken_http_request_t;
 
 typedef struct {
-  int statusCode;
-  char status[256];
-  ken_http_request_header_t headers[128];
+  unsigned short status_code;
+  char* status;
+  char* body;
 
-  char data[RESPONSE_MAX_SIZE];
+  ken_http_header_t* headers;
 } ken_http_response_t;
 
-extern int ken_http_parse(ken_http_request_t* request, char* buffer, size_t length);
+extern int ken_http_parse(ken_http_request_t*, const char*, size_t);
 
-extern void ken_http_send(ken_http_request_t* request, ken_http_response_t* response);
+extern void ken_http_send(ken_http_request_t*, ken_http_response_t*);
 
-extern void ken_http_close(ken_http_request_t* request);
+extern void ken_http_close(ken_http_request_t*);
+
+extern void ken_http_request_init(ken_http_request_t*);
+extern void ken_http_request_free(ken_http_request_t*);
+
+extern void ken_http_response_free(ken_http_response_t*);
 
 #endif

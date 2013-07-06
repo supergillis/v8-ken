@@ -8,6 +8,9 @@
         '-std=gnu99',
         '-g',
       ],
+      'dependencies': [
+        '../../deps/http-parser/http_parser.gyp:http_parser',
+      ],
       'cflags!': [
         '-Wnon-virtual-dtor',
         '-Woverloaded-virtual',
@@ -16,6 +19,7 @@
       ],
       'include_dirs': [
         '../../deps/ken',
+        '../../deps/http-parser'
       ],
       'sources': [
         '../../deps/ken/ken.c',

@@ -53,6 +53,8 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 
+#include <http_parser.h>
+
 #if !defined _POSIX_SYNCHRONIZED_IO   || \
     !defined _POSIX_FSYNC             || \
     !defined _POSIX_MAPPED_FILES      || \
@@ -64,7 +66,6 @@
 #include "kencom.h"
 #include "kenapp.h"
 #include "kenext.h"
-
 #include "kenhttp.h"
 
 #define KEN_HEAP_SIZE 5*1024*1024*1024
@@ -772,21 +773,22 @@ do { *bufpp = (bp), *msglen = (ml); *sender = (sd); *seqno = (sn); \
 
       if (request == NULL) {
         request = malloc(sizeof(ken_http_request_t));
-        request->socket = -1;
+        ken_http_request_init(request);
       }
 
-      /* Close the previous connection if any */
+      /* Clean up the previous request. */
+      ken_http_request_free(request);
       ken_http_close(request);
 
       request->socket = accept(httpsock, NULL, NULL);
       KENASRT(0 <= request->socket);
 
-      /*  Parse the request */
       bytes = recv(request->socket, inbuf, sizeof inbuf, 0);
       KENASRT(0 <= bytes);
 
-      if (ken_http_parse(request, inbuf, (size_t) bytes))
-        NEXT_INPUT_RETURN((char*) request, sizeof(*request), kenid_http, 0);
+      /*  Parse the request. */
+      if (ken_http_parse(request, inbuf, bytes))
+        NEXT_INPUT_RETURN((char*) request, sizeof(request), kenid_http, 0);
     }
     else {                                        /* communication socket ready */
       ken_msg_hdr_t * hdr;

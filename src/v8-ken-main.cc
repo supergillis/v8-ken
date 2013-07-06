@@ -1,8 +1,13 @@
+#include <http_parser.h>
+
 #include "v8.h"
 #include "v8-ken.h"
 #include "v8-ken-http.h"
 #include "v8-ken-data.h"
 #include "v8-ken-v8.h"
+
+#define NOT_FOUND_STATUS ((char*) "Not Found")
+#define NOT_FOUND_BODY ((char*) "This page was not found.")
 
 /***
  * V8 ken shell main loop
@@ -60,31 +65,31 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t ken_sender) {
   else if (0 == ken_id_cmp(ken_sender, kenid_http)) {
     static ken_http_response_t response;
 
-    ken_http_request_t* request = (ken_http_request_t*) msg;
-    bool success = false;
-
     v8::HandleScope handle_scope;
     v8::Handle<v8::Object> request_object = v8::Object::New();
     v8::Handle<v8::Object> response_object = v8::Object::New();
 
+    ken_http_request_t* request = (ken_http_request_t*) msg;
+
+    bool success = false;
     if (v8::ken::http::RequestToObject(request, request_object)) {
       v8::ken::HandleHttpRequest(request_object, response_object);
 
       if (v8::ken::http::ObjectToResponse(response_object, &response)) {
         success = true;
-        ken_http_send(request, &response);
       }
     }
 
     if (!success) {
-      response.statusCode = 404;
-      strcpy(response.status, "Not Found");
-      strcpy(response.data, "This page was not found.");
-
+      response.status_code = 404;
+      response.status = NOT_FOUND_STATUS;
+      response.body = NOT_FOUND_BODY;
       ken_http_send(request, &response);
     }
-
-    ken_http_close(request);
+    else {
+      ken_http_send(request, &response);
+      ken_http_response_free(&response);
+    }
   }
   else {
     // Incoming message
