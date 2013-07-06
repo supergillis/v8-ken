@@ -5,9 +5,8 @@ namespace v8 {
   namespace ken {
     namespace http {
       Handle<Value> CharToString(const char* str) {
-        if (str == NULL) {
+        if (str == NULL)
           return Undefined();
-        }
         return String::New(str);
       }
 

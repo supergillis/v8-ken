@@ -90,6 +90,8 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t ken_sender) {
       ken_http_send(request, &response);
       ken_http_response_free(&response);
     }
+
+    ken_http_close(request);
   }
   else {
     // Incoming message

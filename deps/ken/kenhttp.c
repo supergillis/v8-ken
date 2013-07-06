@@ -97,8 +97,15 @@ void ken_http_response_free(ken_http_response_t* response) {
 }
 
 int message_begin_cb (http_parser* p) {
-  ken_http_request_t* request = p->data;
+  int socket;
+  ken_http_request_t* request;
+
+  request = p->data;
+
+  /* Make sure the request is freed. */
+  socket = request->socket;
   ken_http_request_free(request);
+  request->socket = socket;
 
   return 0;
 }
@@ -173,7 +180,7 @@ int ken_http_compose(ken_http_response_t* response, char* buf, size_t len) {
 void ken_http_send(ken_http_request_t* request, ken_http_response_t* response) {
   static char buf[RESPONSE_MAX_SIZE];
 
-  if (ken_http_compose(response, buf, sizeof(buf)) {
+  if (ken_http_compose(response, buf, sizeof(buf))) {
     ssize_t len = send(request->socket, buf, strlen(buf), 0);
     KENASRT(len != -1);
   }
