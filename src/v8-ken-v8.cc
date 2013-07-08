@@ -26,10 +26,6 @@ namespace v8 {
       object->Set(String::New("hrtime"), FunctionTemplate::New(HrTime)->GetFunction());
     }
 
-    const char* ToCString(Handle<String> value) {
-      return ToCString(String::Utf8Value(value));
-    }
-
     const char* ToCString(const String::Utf8Value& value) {
       return *value ? *value : "NULL";
     }
@@ -209,7 +205,8 @@ namespace v8 {
       HandleScope handle_scope;
       Handle<Value> result;
 
-      for (int index = 0; index < args.Length(); index++) {
+      int length = args.Length();
+      for (int index = 0; index < length; index++) {
         String::Utf8Value string(args[index]);
         print(ToCString(string));
       }

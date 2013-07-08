@@ -50,7 +50,8 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t ken_sender) {
         v8::Handle<v8::String> string = v8::Handle<v8::String>::Cast(stringified);
 
         if (string->Length() > 0) {
-          v8::ken::print(v8::ken::ToCString(string));
+          v8::String::Utf8Value utf8Value(string);
+          v8::ken::print(v8::ken::ToCString(utf8Value));
           v8::ken::print("\n");
         }
       }

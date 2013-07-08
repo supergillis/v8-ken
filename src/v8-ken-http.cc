@@ -11,9 +11,18 @@ namespace v8 {
       }
 
       bool RequestToObject(ken_http_request_t* request, Handle<Object> object) {
+        ken_http_header_t* header = request->headers;
+
+        Handle<Object> headersObject = Object::New();
+        while (header != NULL) {
+          headersObject->Set(CharToString(header->name), CharToString(header->value));
+          header = header->next;
+        }
+
         object->Set(String::New("method"), CharToString(request->method));
         object->Set(String::New("uri"), CharToString(request->uri));
         object->Set(String::New("body"), CharToString(request->body));
+        object->Set(String::New("headers"), headersObject);
 
         return true;
       }
