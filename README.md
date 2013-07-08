@@ -42,6 +42,21 @@ The last input, `CTRL+C`, just 'crashes' the shell. A non-orthogonal persistent 
 
 The V8 engine remembers all the variables, even the `create_counter` function! We can just continue programming as if there was no crash!
 
+## Fault-tolerant HTTP server
+
+`v8ken` adds rudimentary support for handling HTTP requests to v8. Here's how: 
+
+    var counter = 0;
+    var handleRequest = function(request, response) {
+      if (request.uri === "/counter") {
+        response.statusCode = 200;
+        response.status = "OK";
+        response.data = "Counter: " + (counter++);
+      }
+    };
+    
+If the server should crash and restart, the server's state (such as the value of the `counter` variable) will remain intact. Clients can continue interacting with the server as if no crash had occurred.
+
 ## Context
 This project is part of my master thesis. The thesis actually consists of two parts:
 
@@ -49,6 +64,10 @@ This project is part of my master thesis. The thesis actually consists of two pa
   * A JavaScript framework that provides ActiveRecord-style schemas, transactions, ...
 
 The main idea of the latter is that when you have a persistent language, you have all kinds of data floating around, but there is no easy way to manage it. A big advantage when using a database backend is that you can define schemas, you can run queries, you can execute several statements in a transaction, ... With an orthogonal persistent language, this is not possible. Thus the goal of the framework is to make it easier for the developer to handle the unmanaged data.
+
+## Future Plans
+
+The main future plans are to integrate the Ken library with node.js rather than with just v8, bringing the benefits of persistence and fault-tolerance to server-side Javascript applications written using node.js.
 
 ## Technical Details
 To make the V8 engine persistent we make use of the Ken library.
