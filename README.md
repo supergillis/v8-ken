@@ -1,5 +1,6 @@
 # v8-ken
-This project adds orthogonal persistence to the V8 engine. This means that we have created a version of V8 where all objects, arrays, functions, ... are automatically persisted.
+
+This project adds orthogonal persistence to the V8 engine. In v8ken, all objects, arrays, functions, ... are automatically persisted at the end of every "turn" of the event loop. In effect, events become little transactions that update v8ken's persistent heap. This allows us to write persistent, fault-tolerant JavaScript applications without relying on an external data store.
 
 ## Example
 If the above wasn't very clear, here is a small example of what this actually means.
