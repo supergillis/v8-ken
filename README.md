@@ -54,7 +54,9 @@ The V8 engine remembers all the variables, even the `create_counter` function! W
         response.data = "Counter: " + (counter++);
       }
     };
-    
+
+Visiting this web server's `/counter` page will serve an increasingly incrementing counter value.
+
 If the server should crash and restart, the server's state (such as the value of the `counter` variable) will remain intact. Clients can continue interacting with the server as if no crash had occurred.
 
 ## Context
