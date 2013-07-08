@@ -37,6 +37,7 @@ extern void ken_http_close(ken_http_request_t*);
 extern void ken_http_request_init(ken_http_request_t*);
 extern void ken_http_request_free(ken_http_request_t*);
 
+extern void ken_http_response_init(ken_http_response_t*);
 extern void ken_http_response_free(ken_http_response_t*);
 
 #endif

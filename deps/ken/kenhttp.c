@@ -66,20 +66,20 @@ int ken_http_parse(ken_http_request_t* request, const char* buf, size_t len) {
   return parsed == len;
 }
 
-void ken_http_request_init(ken_http_request_t* request) {
-  request->socket = -1;
-  request->method = NULL;
-  request->uri = NULL;
-  request->body = NULL;
-  request->headers = NULL;
-}
-
 void ken_http_header_free(ken_http_header_t* header) {
   while (header != NULL) {
     checked_free(header->name);
     checked_free(header->value);
     header = header->next;
   }
+}
+
+void ken_http_request_init(ken_http_request_t* request) {
+  request->socket = -1;
+  request->method = NULL;
+  request->uri = NULL;
+  request->body = NULL;
+  request->headers = NULL;
 }
 
 void ken_http_request_free(ken_http_request_t* request) {
@@ -89,10 +89,17 @@ void ken_http_request_free(ken_http_request_t* request) {
   ken_http_request_init(request);
 }
 
+void ken_http_response_init(ken_http_response_t* response) {
+  response->status = NULL;
+  response->body = NULL;
+  response->headers = NULL;
+}
+
 void ken_http_response_free(ken_http_response_t* response) {
   response->status_code = 0;
-  response->status = NULL;
 
+  checked_free(response->status);
+  checked_free(response->body);
   ken_http_header_free(response->headers);
 }
 
@@ -165,11 +172,19 @@ int body_cb(http_parser* p, const char* buf, size_t len) {
 }
 
 int ken_http_compose(ken_http_response_t* response, char* buf, size_t len) {
+  ken_http_header_t* header;
   int bytes;
 
-  // TODO headers
   bytes = snprintf(buf, len, "HTTP/1.1 %d %s\r\n", response->status_code, response->status);
   buf += bytes;
+
+  header = response->headers;
+  while (header != NULL) {
+    bytes = snprintf(buf, len, "%s: %s\r\n", header->name, header->value);
+    buf += bytes;
+    header = header->next;
+  }
+
   bytes = snprintf(buf, len, "\r\n%s", response->body);
   buf += bytes;
   *buf = '\0';
@@ -180,7 +195,7 @@ int ken_http_compose(ken_http_response_t* response, char* buf, size_t len) {
 void ken_http_send(ken_http_request_t* request, ken_http_response_t* response) {
   static char buf[RESPONSE_MAX_SIZE];
 
-  if (ken_http_compose(response, buf, sizeof(buf))) {
+  if (ken_http_compose(response, buf, RESPONSE_MAX_SIZE)) {
     ssize_t len = send(request->socket, buf, strlen(buf), 0);
     KENASRT(len != -1);
   }

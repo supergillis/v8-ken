@@ -31,6 +31,7 @@ namespace v8 {
         Handle<Value> statusCode = object->Get(String::New("statusCode"));
         Handle<Value> status = object->Get(String::New("status"));
         Handle<Value> body = object->Get(String::New("body"));
+        Handle<Value> headers = object->Get(String::New("headers"));
 
         // Status code *must* be set
         if (!statusCode->IsUint32())
@@ -40,15 +41,41 @@ namespace v8 {
 
         if (status->IsString()) {
           Handle<String> statusString = status->ToString();
-          response->status = new char[statusString->Length() + 1];
+          response->status = (char*) malloc(sizeof(char) * (statusString->Length() + 1));
           statusString->WriteAscii(response->status);
         }
 
         if (body->IsString()) {
           Handle<String> bodyString = body->ToString();
-          response->body = new char[bodyString->Length() + 1];
+          response->body = (char*) malloc(sizeof(char) * (bodyString->Length() + 1));
           bodyString->WriteAscii(response->body);
         }
+
+        if (headers->IsObject()) {
+          Handle<Object> headersObject = headers->ToObject();
+          Handle<Array> headerNames = headersObject->GetPropertyNames();
+
+          uint32_t headerSize = headerNames->Length();
+          for (uint32_t index = 0; index < headerSize; index++) {
+            ken_http_header_t* header = (ken_http_header_t*) malloc(sizeof(ken_http_header_t));
+            Handle<String> nameString = headerNames->Get(index)->ToString();
+            Handle<String> valueString = headersObject->Get(nameString)->ToString();
+
+            header->name = (char*) malloc(sizeof(char) * (nameString->Length() + 1));
+            nameString->WriteAscii(header->name);
+
+            header->value = (char*) malloc(sizeof(char) * (valueString->Length() + 1));
+            valueString->WriteAscii(header->value);
+
+            header->next = response->headers;
+            response->headers = header;
+          }
+        }
+
+        /*ken_http_header_t* header = (ken_http_header_t*) malloc(sizeof(ken_http_header_t));
+        header->name = { 'C', 'o', 'n', 't', 'e', 'n', '-', 'T', 'y', 'p', 'e', '\0' };
+        header->value = { 't', 'e', 'x', 't',, '/', 'h', 't', 'm', 'l', '\0' };
+        response->headers = header;*/
 
         return true;
       }

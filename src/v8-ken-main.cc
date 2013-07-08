@@ -71,6 +71,7 @@ int64_t ken_handler(void* msg, int32_t len, kenid_t ken_sender) {
     v8::Handle<v8::Object> response_object = v8::Object::New();
 
     ken_http_request_t* request = (ken_http_request_t*) msg;
+    ken_http_response_init(&response);
 
     bool success = false;
     if (v8::ken::http::RequestToObject(request, request_object)) {
