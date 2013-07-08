@@ -51,7 +51,7 @@ The V8 engine remembers all the variables, even the `create_counter` function! W
       if (request.uri === "/counter") {
         response.statusCode = 200;
         response.status = "OK";
-        response.data = "Counter: " + (counter++);
+        response.body = "Counter: " + (counter++);
       }
     };
 
